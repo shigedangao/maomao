@@ -1,0 +1,12 @@
+kind = "Service"
+name = "$deployment.name"
+
+[spec]
+    [spec.selector]
+    use = "deployment.labels"
+
+    [spec.ports]
+        [spec.ports.http]
+        protocol = "TCP"
+        port = 8080
+        targetPort = "$deployment.port"

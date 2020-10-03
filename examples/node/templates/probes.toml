@@ -1,0 +1,15 @@
+[global]
+kind = "httpGet"
+path = "/healthz"
+port = 8080
+
+[liveness]
+use = "global"
+
+[readiness]
+kind = "exec"
+command = [
+    "cat",
+    "/tmp/healthy"
+]
+initialDelaySeconds = 5

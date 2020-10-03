@@ -1,0 +1,33 @@
+kind = "Deployment"
+name = "NodeJS"
+tag  = "v1.12.0"
+port = 80
+
+[labels]
+tier = "backend"
+app  = "node"
+
+[spec]
+replicas = 1
+
+    [spec.containers]
+        
+        [spec.containers.node]
+        name = "node"
+        image = "node:$tag"
+        ports = [
+            { http = "$port" }
+        ]
+        configMap = [
+            # will make reference to a set of environment variables 
+            "misc",
+            "api"
+        ]
+        secrets = [
+            # will make a reference to a set of secrets variables
+            "salesforce"
+        ]
+        probes = [
+            { liveness = "probes.liveness" },
+            { readiness = "probes.readiness" }
+        ]
