@@ -3,8 +3,11 @@ use std::path::{Path, PathBuf};
 use crate::helper::err::LibError;
 
 // Constant
-const TEMPLATE_FOLDER: &str = "templates";
+const TEMPLATE_FOLDER: &str = "/templates";
 const OPERATION_KIND: &str = "read";
+
+// Error message
+const ERROR_DIRECTORY: &str = "Directory does not exist";
 
 /// Read Templates
 ///
@@ -44,7 +47,7 @@ fn get_template_file_path(dir: &Path) -> Result<Vec<PathBuf>, LibError> {
     if !dir.is_dir() {
         return Err(LibError {
             kind: String::from(OPERATION_KIND),
-            message: String::from("Directory does not exist")
+            message: String::from(ERROR_DIRECTORY)
         });
     }
 
@@ -72,4 +75,27 @@ fn get_template_file_path(dir: &Path) -> Result<Vec<PathBuf>, LibError> {
 fn read_file(path: &PathBuf) -> Result<String, LibError> {
     let content = fs::read_to_string(path)?;
     Ok(content)
+}
+
+#[cfg(test)]
+mod read_test {
+    const TEMPLATE_EX_PATH: &str = "examples/node";
+
+    #[test]
+    fn read_success() {
+        let templates = super::read_templates(TEMPLATE_EX_PATH);
+        assert!(!templates.is_err());
+
+        let res = templates.unwrap();
+        assert_eq!(res.len(), 3);
+    }
+
+    #[test]
+    fn read_wrong_dir() {
+        let templates = super::read_templates("");
+        assert!(templates.is_err());
+
+        let err = templates.unwrap_err();
+        assert_eq!(err.message, super::ERROR_DIRECTORY);
+    }
 }
