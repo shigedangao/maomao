@@ -1,4 +1,6 @@
 kind = "Deployment"
+
+[variable]
 name = "NodeJS"
 tag  = "v1.12.0"
 port = 80
@@ -13,7 +15,7 @@ replicas = 1
     [spec.containers]
         
         [spec.containers.node]
-        name = "node"
+        name = "$name"
         image = "node:$tag"
         ports = [
             { http = "$port" }

@@ -1,3 +1,5 @@
+kind = "patch"
+
 [global]
 kind = "httpGet"
 path = "/healthz"
