@@ -21,7 +21,7 @@ fn read_file(path: &PathBuf) -> Result<String, LibError> {
     Ok(content)
 }
 
-mod templates {
+pub mod templates {
     use std::fs;
     use std::path::{Path, PathBuf};
     use crate::helper::err::LibError;

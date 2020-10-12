@@ -1,4 +1,7 @@
-kind = "Service"
+kind = "Kubernetes"
+type = "Service"
+
+[variables]
 name = "$deployment.name"
 
 [spec]
