@@ -1,7 +1,10 @@
-kind = "Deployment"
+kind = "Kubernetes"
+type = "Deployment"
+
+[variables]
 name = "NodeJS"
 tag  = "v1.12.0"
-port = 80
+port = "80"
 
 [labels]
 tier = "backend"
@@ -13,12 +16,12 @@ replicas = 1
     [spec.containers]
         
         [spec.containers.node]
-        name = "node"
+        name = "$name"
         image = "node:$tag"
         ports = [
-            { http = "$port" }
+            { name = "http", value = "$port" }
         ]
-        configMap = [
+        config_map = [
             # will make reference to a set of environment variables 
             "misc",
             "api"
@@ -28,6 +31,8 @@ replicas = 1
             "salesforce"
         ]
         probes = [
-            { liveness = "probes.liveness" },
-            { readiness = "probes.readiness" }
+            { liveness = { kind = "exec", command = ["cat", "/tmp/healthy"] } },
+            # if a value is a string with a $ we will search for the reference variables
+            # { readiness = "$probes.readiness" },
+            { readiness = { kind = "http", path = "foo", port = 8080 } }
         ]

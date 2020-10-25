@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{PathBuf};
 use crate::helper::err::LibError;
 
-/// Constant
+// Constant
 const OPERATION_KIND: &str = "read";
 
 // Error message
@@ -21,7 +21,7 @@ fn read_file(path: &PathBuf) -> Result<String, LibError> {
     Ok(content)
 }
 
-mod templates {
+pub mod templates {
     use std::fs;
     use std::path::{Path, PathBuf};
     use crate::helper::err::LibError;
@@ -50,7 +50,7 @@ mod templates {
             .iter()
             .map(|f| super::read_file(f))
             .filter(|s| !s.is_err())
-            .map(|s|s.unwrap())
+            .map(|s| s.unwrap())
             .collect::<Vec<String>>();
 
         Ok(files_content)

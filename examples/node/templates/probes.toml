@@ -1,15 +1,16 @@
-[global]
-kind = "httpGet"
-path = "/healthz"
-port = 8080
+kind = "patch"
 
-[liveness]
-use = "global"
-
-[readiness]
-kind = "exec"
-command = [
-    "cat",
-    "/tmp/healthy"
-]
+[variables]
 initialDelaySeconds = 5
+
+[spec]
+
+    [spec.liveness]
+    use = "global"
+
+    [spec.readiness]
+    kind = "exec"
+    command = [
+        "cat",
+        "/tmp/healthy"
+    ]
