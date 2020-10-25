@@ -25,6 +25,14 @@ pub fn get_string_value(t_content: &Value, key: &str) -> Option<String> {
     None
 }
 
+/// Get Value For Type
+///
+/// # Description
+/// Get a value for a Type T: ConvertNative<T>. This will retrieve a key and return the type wrap in an Option
+///
+/// # Arguments
+/// * `t_content` - &Value
+/// * `key` - &str
 pub fn get_value_for_type<T: ConvertNative<T>>(t_content: &Value, key: &str) -> Option<T> {
     let value = t_content.get(key);
     if let Some(v) = value {

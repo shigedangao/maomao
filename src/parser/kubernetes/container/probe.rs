@@ -4,7 +4,6 @@ use toml::map::Map;
 use crate::parser::conv::ConvertNative;
 use crate::parser::util::{
     get_string_value,
-    get_array_for_type,
     get_value_for_type
 };
 
@@ -83,7 +82,7 @@ impl From<Value> for HttpHeaders {
 /// Build an http_get probe (check readiness/liveness of a probe by targeting an http endpoint)
 ///
 /// # Arguments
-/// * `item` - &Value
+/// * `item` - &Map<String, Value>
 fn build_probe_http_get(item: &Map<String, Value>) -> Probe {
     let mut probe = Probe::default();
 
@@ -101,22 +100,44 @@ fn build_probe_http_get(item: &Map<String, Value>) -> Probe {
         return probe;
     }
 
-    let mut http_get = HttpGet {
+    let http_headers_array = item.get("http_headers");
+    let http_get = HttpGet {
         path: path.unwrap(),
         port: port.unwrap(),
-        http_headers: None
+        http_headers: get_http_headers(http_headers_array)
     };
 
-    let http_headers_map = item.get("http_headers");
-    if let Some(toml_headers) = http_headers_map {
-        let (_, http_headers) = get_array_for_type::<HttpHeaders>(&toml_headers, "http_headers");
-        if http_headers.is_some() {
-            http_get.http_headers = http_headers;
-        }
-    }
-    
     probe.http_get = Some(http_get);
     probe
+}
+
+/// Get Http Headers
+///
+/// # Description
+/// Retrieve HttpHeaders from a toml Array of toml Table
+///
+/// # Arguments
+/// * `item` - Option<&Value>
+fn get_http_headers(item: Option<&Value>) -> Option<Vec<HttpHeaders>> {
+    if item.is_none() {
+        return None;
+    }
+
+    if !item.unwrap().is_array() {
+        return None;
+    }
+
+    let array = item
+        .unwrap()
+        .as_array()
+        .unwrap();
+
+    let res = array
+        .iter()
+        .map(|v| HttpHeaders::from(v.to_owned()))
+        .collect::<Vec<HttpHeaders>>();
+
+    Some(res)
 }
 
 /// Build Probe Exec
@@ -125,7 +146,7 @@ fn build_probe_http_get(item: &Map<String, Value>) -> Probe {
 /// Build an exec probe (check readiness/liveness of a probe by using the exec command)
 ///
 /// # Arguments
-/// * `item` - &Value
+/// * `item` - &Map<String, Value>
 fn build_probe_exec(item: &Map<String, Value>) -> Probe {
     let mut probe = Probe::default();
 
@@ -156,14 +177,7 @@ mod probe_test {
     #[test]
     fn get_http_probe() {
         let content = "
-            [probes]
-                [probes.readiness]
-                    kind = 'exec'
-                    command = [
-                        'foo',
-                        'bar'
-                    ]
-                    
+            [probes]        
                 [probes.liveness]
                     kind = 'http'
                     path = 'foo'
@@ -188,6 +202,39 @@ mod probe_test {
         let http_get = probe.http_get.unwrap();
         assert_eq!(http_get.path, "foo");
         assert_eq!(http_get.port, 8080);
+    }
+
+    #[test]
+    fn get_http_headers() {
+        let content = "
+            [probes]        
+                [probes.liveness]
+                    kind = 'http'
+                    path = 'foo'
+                    port = 8080                
+                    http_headers = [
+                        { name = 'baz', value = 'wow' },
+                        { name = 'yo', value = 'sabai' }
+                    ]
+        ";
+
+        let table = content.parse::<Value>().unwrap();
+        let probes_table = table.get("probes")
+            .unwrap()
+            .as_table()
+            .unwrap();
+            
+        let liveness = probes_table.get("liveness").unwrap();
+        let probe = Probe::from(liveness.to_owned());
+
+        let http_get = probe.http_get.unwrap();
+        let headers = http_get.http_headers.unwrap();
+
+        assert_eq!(headers.get(0).unwrap().name, "baz");
+        assert_eq!(headers.get(0).unwrap().value, "wow");
+        
+        assert_eq!(headers.get(1).unwrap().name, "yo");
+        assert_eq!(headers.get(1).unwrap().value, "sabai");
     }
 
     #[test]
