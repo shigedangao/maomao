@@ -33,6 +33,7 @@ struct Exec {
     command: Vec<String>
 }
 
+// @TOOD use builder pattern
 impl From<Value> for Probe {
     fn from(item: Value) -> Self {
         let probe_values = item.as_table();
@@ -93,7 +94,7 @@ fn build_probe_http_get(item: &Map<String, Value>) -> Probe {
         return probe;
     }
 
-    let path = String::to(&path_v.unwrap());
+    let path = String::to(path_v.unwrap());
     let port    = i64::to(port_v.unwrap());
 
     if path.is_none() || port.is_none() {

@@ -21,18 +21,31 @@ replicas = 1
         ports = [
             { name = "http", value = "$port" }
         ]
-        config_map = [
-            # will make reference to a set of environment variables 
-            "misc",
-            "api"
-        ]
-        secrets = [
-            # will make a reference to a set of secrets variables
-            "salesforce"
-        ]
-        probes = [
-            { liveness = { kind = "exec", command = ["cat", "/tmp/healthy"] } },
-            # if a value is a string with a $ we will search for the reference variables
-            # { readiness = "$probes.readiness" },
-            { readiness = { kind = "http", path = "foo", port = 8080 } }
-        ]
+        
+        [spec.containers.node.env]
+            ref = [
+                # will make reference to a set of econfigmap / secrets
+                "configmap::misc",
+                "configmap::api",
+                "secrets::foo"
+            ]
+            from = [
+                # will make a reference to a set of secrets variables
+                { kind = 'secret', name = "google-api-key", from = "google::main.key" }
+            ]
+            raw = [
+                # raw kubernetes env value
+                { name = 'greeting', value = 'bar' }
+            ]
+
+        
+        [spec.containers.probes]
+
+            [probes.liveness]
+                    kind = 'http'
+                    path = 'foo'
+                    port = 8080                
+                    http_headers = [
+                        { name = 'baz', value = 'wow' },
+                        { name = 'yo', value = 'sabai' }
+                    ]            

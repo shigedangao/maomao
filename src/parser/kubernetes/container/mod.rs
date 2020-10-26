@@ -1,5 +1,6 @@
 mod probe;
 mod port;
+mod env;
 
 use toml::Value;
 use toml::map::Map;
@@ -55,9 +56,8 @@ mod container_test {
         ";
 
         let t_content = content.parse::<Value>().unwrap();
-        let (port_str, port_vec) = get_array_for_type::<port::PortMapping>(&t_content, "ports");
+        let port_vec = get_array_for_type::<port::PortMapping>(&t_content, "ports");
 
-        assert!(port_str.is_none());
         assert!(port_vec.is_some());
 
         let ports = port_vec.unwrap();
