@@ -31,11 +31,11 @@ replicas = 1
             ]
             from = [
                 # will make a reference to a set of secrets variables
-                { kind = 'secret', name = "google-api-key", from = "google::main.key" }
+                { kind = "secret", name = "google-api-key", from = "google::main.key" }
             ]
             raw = [
                 # raw kubernetes env value
-                { name = 'greeting', value = 'bar' }
+                { name = "greeting", value = "bar" }
             ]
 
         
