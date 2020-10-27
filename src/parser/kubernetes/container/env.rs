@@ -29,8 +29,9 @@ impl From<String> for EnvRefKind {
 ///
 /// # Description
 /// Map is a reference to a ConfigMap & SecretMap use in a container
+#[derive(Default)]
 pub struct Map {
-    map_ref: Option<Vec<String>>,
+    map: Option<Vec<String>>,
     raw: Option<Vec<Raw>>,
     from: Option<Vec<Key>>
 }
@@ -46,6 +47,32 @@ pub struct Key {
     kind: EnvRefKind,
     name: String,
     from: String
+}
+
+impl Map {
+    /// New
+    ///
+    /// # Description
+    /// Create a new Map object
+    fn new() -> Map {
+        Map::default()
+    }
+
+    /// Finish
+    ///
+    /// # Description
+    /// Set the minimal field to create the Map object
+    fn finish(mut self, item: Value) -> Map {
+        let map = get_map_ref(&item);
+        let raw = get_raw_env(&item);
+        let from = get_from_env(&item);
+
+        self.map = map;
+        self.raw = raw;
+        self.from = from;
+
+        self
+    }
 }
 
 impl From<Value> for Raw {
@@ -107,7 +134,7 @@ impl From<Value> for Key {
 /// # Arguments
 /// * `item` - &Value
 pub fn get_map_ref(item: &Value) -> Option<Vec<String>> {
-    let content = item.get("ref");
+    let content = item.get("map");
     if content.is_none() {
         return None;
     }
@@ -148,13 +175,14 @@ mod env_test {
         get_map_ref,
         get_raw_env,
         get_from_env,
-        EnvRefKind
+        EnvRefKind,
+        Map
     };
 
     #[test]
     fn get_map_test() {
         let content = "
-            ref = [
+            map = [
                 'configmap::misc',
                 'configmap::api',
                 'secrets::foo'
@@ -207,5 +235,32 @@ mod env_test {
         assert_eq!(content.get(0).unwrap().kind, EnvRefKind::SecretMap);
         assert_eq!(content.get(0).unwrap().name, "google-api-key");   
         assert_eq!(content.get(0).unwrap().from, "google::main.key");   
+    }
+
+    #[test]
+    fn get_env_from_value() {
+        let content = "
+            map = [
+                'configmap::misc',
+                'configmap::api',
+                'secrets::foo'
+            ]
+            raw = [
+                { name = 'greeting', value = 'bar' }
+            ]
+        ";
+
+        let res = content.parse::<Value>().unwrap();
+        let env = Map::new().finish(res);
+
+        assert!(env.raw.is_some());
+        assert!(env.map.is_some());
+        assert!(env.from.is_none());
+
+        let raw = env.raw.unwrap();
+        assert_eq!(raw.get(0).unwrap().name, "greeting");
+
+        let map = env.map.unwrap();
+        assert_eq!(map.get(0).unwrap(), "configmap::misc");   
     }
 }

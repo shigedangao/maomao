@@ -33,34 +33,6 @@ struct Exec {
     command: Vec<String>
 }
 
-// @TOOD use builder pattern
-impl From<Value> for Probe {
-    fn from(item: Value) -> Self {
-        let probe_values = item.as_table();
-        if probe_values.is_none() {
-            return Probe::default();
-        }
-
-        let probe_map = probe_values.unwrap();
-        let kind = probe_map.get("kind").unwrap();
-
-        let mut probe = match kind.as_str().unwrap() {
-            "exec" => build_probe_exec(&probe_map),
-            "http" => build_probe_http_get(&probe_map),
-            _ => Probe::default()
-        };
-
-        // Retrieve the delays
-        let init_delay = get_value_for_type::<i64>(&item, "initial_delay_seconds");
-        let period = get_value_for_type::<i64>(&item, "period_seconds");
-
-        probe.initial_delay_seconds = init_delay;
-        probe.period_seconds = period;
-
-        probe
-    }
-}
-
 impl From<Value> for HttpHeaders {
     fn from(item: Value) -> Self {
         let name = get_string_value(&item, "name");
@@ -74,6 +46,57 @@ impl From<Value> for HttpHeaders {
             name: name.unwrap(),
             value: value.unwrap()
         }
+    }
+}
+
+impl Probe {
+    /// New
+    ///
+    /// # Description
+    /// Create a new Probe object
+    fn new() -> Probe {
+        Probe::default()
+    }
+
+    /// Set Probe Type
+    ///
+    /// # Description
+    /// Set probe properties such as http_get, exec
+    ///
+    /// # Arguments
+    /// * `self` - Self
+    /// * `item` - &Value
+    fn set_probe_type(mut self, item: &Value) -> Self {
+        let probe_values = item.as_table();
+        if probe_values.is_none() {
+            return Probe::default();
+        }
+
+        let probe_map = probe_values.unwrap();
+        let kind = probe_map.get("kind").unwrap();
+        let probe = match kind.as_str().unwrap() {
+            "exec" => build_probe_exec(&probe_map),
+            "http" => build_probe_http_get(&probe_map),
+            _ => Probe::default()
+        };
+
+        probe
+    }
+
+    /// Finish
+    ///
+    /// # Description
+    /// * `self` - Self
+    /// * `item` - &Value
+    fn finish(mut self, item: &Value) -> Self {
+        // Retrieve the delays
+        let init_delay = get_value_for_type::<i64>(&item, "initial_delay_seconds");
+        let period = get_value_for_type::<i64>(&item, "period_seconds");
+
+        self.initial_delay_seconds = init_delay;
+        self.period_seconds = period;
+
+        self
     }
 }
 
@@ -193,13 +216,12 @@ mod probe_test {
             .as_table()
             .unwrap();
             
-        let liveness = probes_table.get("liveness").unwrap();
-        let probe = Probe::from(liveness.to_owned());
+        let liveness_table = probes_table.get("liveness").unwrap();
+        let probe_values = liveness_table.as_table();
+        let probe_map = probe_values.unwrap();        
+        let probe = super::build_probe_http_get(probe_map);
 
         assert!(probe.http_get.is_some());
-        assert_eq!(probe.initial_delay_seconds.unwrap(), 60);
-        assert_eq!(probe.period_seconds.unwrap(), 20);
-
         let http_get = probe.http_get.unwrap();
         assert_eq!(http_get.path, "foo");
         assert_eq!(http_get.port, 8080);
@@ -226,14 +248,14 @@ mod probe_test {
             .unwrap();
             
         let liveness = probes_table.get("liveness").unwrap();
-        let probe = Probe::from(liveness.to_owned());
+        let probe = Probe::new().set_probe_type(liveness).finish(liveness);
 
         let http_get = probe.http_get.unwrap();
         let headers = http_get.http_headers.unwrap();
 
         assert_eq!(headers.get(0).unwrap().name, "baz");
         assert_eq!(headers.get(0).unwrap().value, "wow");
-        
+ 
         assert_eq!(headers.get(1).unwrap().name, "yo");
         assert_eq!(headers.get(1).unwrap().value, "sabai");
     }
@@ -257,7 +279,7 @@ mod probe_test {
             .unwrap();
         
         let readiness = probe_table.get("readiness").unwrap();
-        let probe = Probe::from(readiness.to_owned());
+        let probe = Probe::new().set_probe_type(readiness).finish(readiness);
 
         assert!(probe.exec.is_some());
         assert!(probe.initial_delay_seconds.is_none());

@@ -23,7 +23,7 @@ replicas = 1
         ]
         
         [spec.containers.node.env]
-            ref = [
+            map = [
                 # will make reference to a set of econfigmap / secrets
                 "configmap::misc",
                 "configmap::api",
