@@ -2,7 +2,6 @@ kind = "Kubernetes"
 type = "Deployment"
 
 [variables]
-name = "NodeJS"
 tag  = "v1.12.0"
 port = "80"
 
@@ -16,7 +15,7 @@ replicas = 1
     [spec.containers]
         
         [spec.containers.node]
-        name = "$name"
+        name = "node"
         image = "node:$tag"
         ports = [
             { name = "http", value = "$port" }
@@ -39,7 +38,7 @@ replicas = 1
             ]
 
         
-        [spec.containers.probes]
+        [spec.containers.node.probes]
 
             [probes.liveness]
                     kind = 'http'

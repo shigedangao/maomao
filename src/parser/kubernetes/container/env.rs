@@ -1,5 +1,6 @@
 use std::convert::From;
 use toml::value::Value;
+use toml::map::Map;
 use crate::parser::conv::ConvertNative;
 use crate::parser::util::get_array_for_type;
 
@@ -25,47 +26,51 @@ impl From<String> for EnvRefKind {
     }
 }
 
-/// Map
+/// EnvMap
 ///
 /// # Description
-/// Map is a reference to a ConfigMap & SecretMap use in a container
-#[derive(Default)]
-pub struct Map {
+/// EnvMap is a reference to a ConfigEnvMap & SecretEnvMap use in a container
+#[derive(Default, Debug)]
+pub struct EnvMap {
     map: Option<Vec<String>>,
     raw: Option<Vec<Raw>>,
     from: Option<Vec<Key>>
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Raw {
     name: String,
     value: String
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Key {
     kind: EnvRefKind,
     name: String,
     from: String
 }
 
-impl Map {
+impl EnvMap {
     /// New
     ///
     /// # Description
-    /// Create a new Map object
-    fn new() -> Map {
-        Map::default()
+    /// Create a new EnvMap object
+    pub fn new() -> EnvMap {
+        EnvMap::default()
     }
 
     /// Finish
     ///
     /// # Description
-    /// Set the minimal field to create the Map object
-    fn finish(mut self, item: Value) -> Map {
-        let map = get_map_ref(&item);
-        let raw = get_raw_env(&item);
-        let from = get_from_env(&item);
+    /// Set the minimal field to create the EnvMap object
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `item` - &Map<String, Value>
+    pub fn finish(mut self, item: &Map<String, Value>) -> EnvMap {
+        let map = get_map_ref(item.get("map"));
+        let raw = get_raw_env(item.get("raw"));
+        let from = get_from_env(item.get("from"));
 
         self.map = map;
         self.raw = raw;
@@ -126,24 +131,24 @@ impl From<Value> for Key {
     }
 }
 
-/// Get Map Ref
+/// Get map Ref
 ///
 /// # Description
 /// Get the value from the key name "map" of the env TOML section
 ///
 /// # Arguments
 /// * `item` - &Value
-pub fn get_map_ref(item: &Value) -> Option<Vec<String>> {
-    let content = item.get("map");
-    if content.is_none() {
-        return None;
-    }
+pub fn get_map_ref(item: Option<&Value>) -> Option<Vec<String>> {
+    let map_item = match item {
+        Some(it) => it,
+        None => return None
+    };
 
-    if !content.unwrap().is_array() {
+    if !map_item.is_array() {
         return None;
     }
     
-    Vec::to(content.unwrap())
+    Vec::to(map_item)
 }
 
 /// Get Raw Env
@@ -153,8 +158,13 @@ pub fn get_map_ref(item: &Value) -> Option<Vec<String>> {
 ///
 /// # Arguments
 /// * `item` - &Value
-pub fn get_raw_env(item: &Value) -> Option<Vec<Raw>> {
-    get_array_for_type::<Raw>(item, "raw")
+pub fn get_raw_env(item: Option<&Value>) -> Option<Vec<Raw>> {
+    let raw_item = match item {
+        Some(it) => it,
+        None => return None
+    };
+
+    get_array_for_type::<Raw>(raw_item, None)
 }
 
 /// Get From Env
@@ -164,8 +174,13 @@ pub fn get_raw_env(item: &Value) -> Option<Vec<Raw>> {
 ///
 /// # Arguments
 /// * `item` - &Value
-pub fn get_from_env(item: &Value) -> Option<Vec<Key>> {
-    get_array_for_type::<Key>(item, "from")
+pub fn get_from_env(item: Option<&Value>) -> Option<Vec<Key>> {
+    let from_item = match item {
+        Some(it) => it,
+        None => return None
+    };
+
+    get_array_for_type::<Key>(from_item, None)
 }
 
 #[cfg(test)]
@@ -176,27 +191,28 @@ mod env_test {
         get_raw_env,
         get_from_env,
         EnvRefKind,
-        Map
+        EnvMap
     };
 
     #[test]
     fn get_map_test() {
         let content = "
             map = [
-                'configmap::misc',
-                'configmap::api',
+                'configEnvMap::misc',
+                'configEnvMap::api',
                 'secrets::foo'
             ]
         ";
 
         let res = content.parse::<Value>().unwrap();
-        let map_ref = get_map_ref(&res);
+        let m = res.get("map").unwrap();
+        let map_ref = get_map_ref(Some(&m));
 
         assert!(map_ref.is_some());
         let res = map_ref.unwrap();
 
-        assert_eq!(res.get(0).unwrap(), "configmap::misc");
-        assert_eq!(res.get(1).unwrap(), "configmap::api");
+        assert_eq!(res.get(0).unwrap(), "configEnvMap::misc");
+        assert_eq!(res.get(1).unwrap(), "configEnvMap::api");
         assert_eq!(res.get(2).unwrap(), "secrets::foo");
     }
 
@@ -209,7 +225,8 @@ mod env_test {
         ";
 
         let res = content.parse::<Value>().unwrap();
-        let raw = get_raw_env(&res);
+        let r = res.get("raw").unwrap();
+        let raw = get_raw_env(Some(&r));
         assert!(raw.is_some());
         
         let content = raw.unwrap();
@@ -227,7 +244,8 @@ mod env_test {
         ";
 
         let res = content.parse::<Value>().unwrap();
-        let from = get_from_env(&res);
+        let f = res.get("from").unwrap();
+        let from = get_from_env(Some(&f));
 
         assert!(from.is_some());
 
@@ -240,9 +258,10 @@ mod env_test {
     #[test]
     fn get_env_from_value() {
         let content = "
+        [spec.containers.node.env]
             map = [
-                'configmap::misc',
-                'configmap::api',
+                'configEnvMap::misc',
+                'configEnvMap::api',
                 'secrets::foo'
             ]
             raw = [
@@ -251,16 +270,20 @@ mod env_test {
         ";
 
         let res = content.parse::<Value>().unwrap();
-        let env = Map::new().finish(res);
+        let spec = res.get("spec").unwrap().as_table().unwrap();
+        let containers = spec.get("containers").unwrap().as_table().unwrap();
+        let node = containers.get("node").unwrap().as_table().unwrap();
+        let env_item = node.get("env").unwrap().as_table().unwrap();
 
+        let env = EnvMap::new().finish(env_item);
         assert!(env.raw.is_some());
         assert!(env.map.is_some());
         assert!(env.from.is_none());
 
         let raw = env.raw.unwrap();
         assert_eq!(raw.get(0).unwrap().name, "greeting");
-
-        let map = env.map.unwrap();
-        assert_eq!(map.get(0).unwrap(), "configmap::misc");   
+ 
+        let env = env.map.unwrap();
+        assert_eq!(env.get(0).unwrap(), "configEnvMap::misc");   
     }
 }

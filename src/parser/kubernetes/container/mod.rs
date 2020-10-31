@@ -11,33 +11,70 @@ use crate::parser::util::{
 
 // (Option<String>, Option<Vec<T>>) -> either return a string mean that we make a reference to a patch. If not we make a reference to a description
 
+#[derive(Debug)]
 struct Container {
     name: String,
     image: String,
-    ports: (Option<String>, Option<Vec<port::PortMapping>>),
-    config_map: (Option<String>, Option<Vec<String>>),
-    secrets: (Option<String>, Option<Vec<String>>),
-    probes: ProbesMapping
+    ports: Option<Vec<port::PortMapping>>,
+    env: Option<env::EnvMap>,
+    probes: Option<ProbesMapping>
 }
 
+#[derive(Debug)]
 struct ProbesMapping {
-    liveness: (Option<String>, Option<probe::Probe>),
-    readiness: (Option<String>, Option<probe::Probe>)
+    liveness: Option<probe::Probe>,
+    readiness: Option<probe::Probe>
 }
 
-/// Parse Container Spec
-///
-/// # Description
-/// Parse a kubernetes container spec. Note we don't use Serde to deserialize the struct
-///
-/// # Arguments
-/// * `t_content` - Contant of the [spec.containers.<name>] toml value
-fn parse_container_spec(t_content: &Value) {
-    let name = get_string_value(&t_content, "name");
-    let image = get_string_value(&t_content, "image");
+impl Container {
+    /// New
+    ///
+    /// # Description
+    /// Create a new Container object
+    ///
+    /// # Arguments
+    /// * `item` - &Value
+    fn new(item: &Value) -> Result<Self, ()> {
+        let name = match get_string_value(&item, "name") {
+            Some(n) => n,
+            None => return Err(())
+        };
 
-    let ports = get_array_for_type::<port::PortMapping>(&t_content, "ports");
+        let image = match get_string_value(&item, "image") {
+            Some(img) => img,
+            None => return Err(())
+        };
+
+        Ok(Container {
+            name,
+            image,
+            ports: None,
+            env: None,
+            probes: None
+        })
+    }
+
+    /// Set Env
+    /// 
+    /// # Description
+    /// Set the environment variable into the Container
+    fn set_env(mut self, item: &Value) -> Self {
+        let env_item = match item.get("env") {
+            Some(e) => e,
+            None => return self
+        };
+
+        let items = match env_item.as_table() {
+            Some(item) => item,
+            None => return self
+        };
+
+        let env = env::EnvMap::new().finish(items);
+        self.env = Some(env);
+        self
+    }
 }
+
 
 #[cfg(test)]
 mod container_test {
@@ -56,7 +93,7 @@ mod container_test {
         ";
 
         let t_content = content.parse::<Value>().unwrap();
-        let port_vec = get_array_for_type::<port::PortMapping>(&t_content, "ports");
+        let port_vec = get_array_for_type::<port::PortMapping>(&t_content, Some("ports"));
 
         assert!(port_vec.is_some());
 
@@ -69,5 +106,43 @@ mod container_test {
         let bar_port = ports.get(1).unwrap();
         assert_eq!(bar_port.name, "bar");
         assert_eq!(bar_port.value, "mao");
+    }
+
+    #[test]
+    fn test_retrieve_container() {
+        let content = "
+            [spec.containers.node]
+                name = 'node'
+                image = 'node:$tag'
+                ports = [
+                    { name = 'http', value = '$port' }
+                ]
+
+                [spec.containers.node.env]
+                    map = [
+                        # will make reference to a set of econfigEnvMap / secrets
+                        'configEnvMap::misc',
+                        'configEnvMap::api',
+                        'secrets::foo'
+                    ]
+                    from = [
+                        # will make a reference to a set of secrets variables
+                        { kind = 'secret', name = 'google-api-key', from = 'google::main.key' }
+                    ]
+                    raw = [
+                        # raw kubernetes env value
+                        { name = 'greeting', value = 'bar' }
+                    ]
+
+        ";
+
+        let toml_containers = content.parse::<Value>().unwrap();
+        let spec = toml_containers.get("spec").unwrap().as_table().unwrap();
+        let containers = spec.get("containers").unwrap().as_table().unwrap();
+        let node = containers.get("node").unwrap();
+        
+        let container = super::Container::new(&node).unwrap();
+        let c = container.set_env(&node);
+        println!("{:?}", c);
     }
 }

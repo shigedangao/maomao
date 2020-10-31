@@ -52,13 +52,17 @@ pub fn get_value_for_type<T: ConvertNative<T>>(t_content: &Value, key: &str) -> 
 /// # Arguments
 /// * `t_content` - &Value
 /// * `key` - &str
-pub fn get_array_for_type<T: From<Value>>(t_content: &Value, key: &str) -> Option<Vec<T>> {
-    let content = t_content.get(key);
-    if content.is_none() {
-        return None;
-    }
+pub fn get_array_for_type<T: From<Value>>(t_content: &Value, key: Option<&str>) -> Option<Vec<T>> {
+    let content = match key {
+        Some(k) =>  t_content.get(k),
+        None => Some(t_content)
+    };
 
-    let res = content.unwrap();
+    let res = match content {
+        Some(c) => c,
+        None => return None
+    };
+
     if !res.is_array() {
         return None;
     }
