@@ -81,7 +81,6 @@ mod container_test {
     use toml::Value;
     use crate::parser::util::get_array_for_type;
     use super::port;
-    
         
     #[test]
     fn test_retrieve_array() {
@@ -121,8 +120,8 @@ mod container_test {
                 [spec.containers.node.env]
                     map = [
                         # will make reference to a set of econfigEnvMap / secrets
-                        'configEnvMap::misc',
-                        'configEnvMap::api',
+                        'configmap::misc',
+                        'configmap::api',
                         'secrets::foo'
                     ]
                     from = [
@@ -142,7 +141,27 @@ mod container_test {
         let node = containers.get("node").unwrap();
         
         let container = super::Container::new(&node).unwrap();
-        let c = container.set_env(&node);
-        println!("{:?}", c);
+        let cnv = container.set_env(&node);
+
+        assert!(cnv.env.is_some());
+
+        let env = cnv.env.unwrap();
+        assert!(env.map.is_some());
+        assert!(env.raw.is_some());
+        assert!(env.from.is_some());
+
+        let map = env.map.unwrap();
+        assert_eq!(map.get(0).unwrap(), "configmap::misc");
+        assert_eq!(map.get(1).unwrap(), "configmap::api");
+        assert_eq!(map.get(2).unwrap(), "secrets::foo");
+
+        let raw = env.raw.unwrap();
+        assert_eq!(raw.get(0).unwrap().name, "greeting");
+        assert_eq!(raw.get(0).unwrap().value, "bar");
+
+        let from = env.from.unwrap();
+        assert_eq!(from.get(0).unwrap().kind, super::env::EnvRefKind::SecretMap);
+        assert_eq!(from.get(0).unwrap().name, "google-api-key");
+        assert_eq!(from.get(0).unwrap().from, "google::main.key");
     }
 }

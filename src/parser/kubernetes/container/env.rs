@@ -32,22 +32,22 @@ impl From<String> for EnvRefKind {
 /// EnvMap is a reference to a ConfigEnvMap & SecretEnvMap use in a container
 #[derive(Default, Debug)]
 pub struct EnvMap {
-    map: Option<Vec<String>>,
-    raw: Option<Vec<Raw>>,
-    from: Option<Vec<Key>>
+    pub map: Option<Vec<String>>,
+    pub raw: Option<Vec<Raw>>,
+    pub from: Option<Vec<Key>>
 }
 
 #[derive(Default, Debug)]
 pub struct Raw {
-    name: String,
-    value: String
+    pub name: String,
+    pub value: String
 }
 
 #[derive(Default, Debug)]
 pub struct Key {
-    kind: EnvRefKind,
-    name: String,
-    from: String
+    pub kind: EnvRefKind,
+    pub name: String,
+    pub from: String
 }
 
 impl EnvMap {
