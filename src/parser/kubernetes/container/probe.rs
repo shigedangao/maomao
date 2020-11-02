@@ -1,7 +1,5 @@
 use std::convert::From;
 use toml::Value;
-use toml::map::Map;
-use crate::parser::conv::ConvertNative;
 use crate::parser::util::{
     get_string_value,
     get_value_for_type
@@ -11,8 +9,8 @@ use crate::parser::util::{
 pub struct Probe {
     http_get: Option<HttpGet>,
     exec: Option<Exec>,
-    initial_delay_seconds: Option<i64>,
-    period_seconds: Option<i64>
+    initial_delay_seconds: i64,
+    period_seconds: i64
 }
 
 #[derive(Default, Debug)]
@@ -54,7 +52,7 @@ impl Probe {
     ///
     /// # Description
     /// Create a new Probe object
-    fn new() -> Probe {
+    pub fn new() -> Probe {
         Probe::default()
     }
 
@@ -66,17 +64,11 @@ impl Probe {
     /// # Arguments
     /// * `self` - Self
     /// * `item` - &Value
-    fn set_probe_type(mut self, item: &Value) -> Self {
-        let probe_values = item.as_table();
-        if probe_values.is_none() {
-            return Probe::default();
-        }
-
-        let probe_map = probe_values.unwrap();
-        let kind = probe_map.get("kind").unwrap();
+    pub fn set_probe_type(mut self, item: &Value) -> Self {
+        let kind = item.get("kind").unwrap();
         let probe = match kind.as_str().unwrap() {
-            "exec" => build_probe_exec(&probe_map),
-            "http" => build_probe_http_get(&probe_map),
+            "exec" => build_probe_exec(&item),
+            "http" => build_probe_http_get(&item),
             _ => Probe::default()
         };
 
@@ -88,13 +80,13 @@ impl Probe {
     /// # Description
     /// * `self` - Self
     /// * `item` - &Value
-    fn finish(mut self, item: &Value) -> Self {
+    pub fn finish(mut self, item: &Value) -> Self {
         // Retrieve the delays
         let init_delay = get_value_for_type::<i64>(&item, "initial_delay_seconds");
         let period = get_value_for_type::<i64>(&item, "period_seconds");
 
-        self.initial_delay_seconds = init_delay;
-        self.period_seconds = period;
+        self.initial_delay_seconds = init_delay.unwrap_or(0);
+        self.period_seconds = period.unwrap_or(0);
 
         self
     }
@@ -107,18 +99,11 @@ impl Probe {
 ///
 /// # Arguments
 /// * `item` - &Map<String, Value>
-fn build_probe_http_get(item: &Map<String, Value>) -> Probe {
+fn build_probe_http_get(item: &Value) -> Probe {
     let mut probe = Probe::default();
 
-    let path_v = item.get("path");
-    let port_v = item.get("port");
-
-    if path_v.is_none() || port_v.is_none() {
-        return probe;
-    }
-
-    let path = String::to(path_v.unwrap());
-    let port    = i64::to(port_v.unwrap());
+    let path = get_value_for_type::<String>(item, "path");
+    let port = get_value_for_type::<i64>(item, "port");
 
     if path.is_none() || port.is_none() {
         return probe;
@@ -170,16 +155,11 @@ fn get_http_headers(item: Option<&Value>) -> Option<Vec<HttpHeaders>> {
 /// Build an exec probe (check readiness/liveness of a probe by using the exec command)
 ///
 /// # Arguments
-/// * `item` - &Map<String, Value>
-fn build_probe_exec(item: &Map<String, Value>) -> Probe {
+/// * `item` - &Value
+fn build_probe_exec(item: &Value) -> Probe {
     let mut probe = Probe::default();
 
-    let cmd = item.get("command");
-    if cmd.is_none() {
-        return probe;
-    }
-
-    let command = Vec::to(cmd.unwrap());
+    let command = get_value_for_type::<Vec<String>>(item, "command");
     if command.is_none() {
         return probe;
     }
@@ -216,10 +196,8 @@ mod probe_test {
             .as_table()
             .unwrap();
             
-        let liveness_table = probes_table.get("liveness").unwrap();
-        let probe_values = liveness_table.as_table();
-        let probe_map = probe_values.unwrap();        
-        let probe = super::build_probe_http_get(probe_map);
+        let liveness_table = probes_table.get("liveness").unwrap();      
+        let probe = super::build_probe_http_get(liveness_table);
 
         assert!(probe.http_get.is_some());
         let http_get = probe.http_get.unwrap();
@@ -239,6 +217,8 @@ mod probe_test {
                         { name = 'baz', value = 'wow' },
                         { name = 'yo', value = 'sabai' }
                     ]
+                    initial_delay_seconds = 60
+                    period_seconds = 20
         ";
 
         let table = content.parse::<Value>().unwrap();
@@ -248,6 +228,7 @@ mod probe_test {
             .unwrap();
             
         let liveness = probes_table.get("liveness").unwrap();
+        
         let probe = Probe::new().set_probe_type(liveness).finish(liveness);
 
         let http_get = probe.http_get.unwrap();
@@ -282,8 +263,8 @@ mod probe_test {
         let probe = Probe::new().set_probe_type(readiness).finish(readiness);
 
         assert!(probe.exec.is_some());
-        assert!(probe.initial_delay_seconds.is_none());
-        assert!(probe.period_seconds.is_none());
+        assert_eq!(probe.initial_delay_seconds, 0);
+        assert_eq!(probe.period_seconds, 0);
 
         let cmd = probe.exec.unwrap();
         assert_eq!(cmd.command.get(0).unwrap(), "foo");

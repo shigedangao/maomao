@@ -41,10 +41,10 @@ replicas = 1
         [spec.containers.node.probes]
 
             [probes.liveness]
-                    kind = 'http'
-                    path = 'foo'
-                    port = 8080                
-                    http_headers = [
-                        { name = 'baz', value = 'wow' },
-                        { name = 'yo', value = 'sabai' }
-                    ]            
+                kind = 'http'
+                path = 'foo'
+                port = 8080                
+                http_headers = [
+                    { name = 'baz', value = 'wow' },
+                    { name = 'yo', value = 'sabai' }
+                ]            

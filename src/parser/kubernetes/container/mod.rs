@@ -20,7 +20,7 @@ struct Container {
     probes: Option<ProbesMapping>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct ProbesMapping {
     liveness: Option<probe::Probe>,
     readiness: Option<probe::Probe>
@@ -58,6 +58,10 @@ impl Container {
     /// 
     /// # Description
     /// Set the environment variable into the Container
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `item` - &Value
     fn set_env(mut self, item: &Value) -> Self {
         let env_item = match item.get("env") {
             Some(e) => e,
@@ -71,6 +75,42 @@ impl Container {
 
         let env = env::EnvMap::new().finish(items);
         self.env = Some(env);
+        self
+    }
+
+    /// Set Probes
+    ///
+    /// # Description
+    /// Retrieve the probes sections
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `item` - &Value
+    fn set_probes(mut self, item: &Value) -> Self {
+        let probe_item = match item.get("probes") {
+            Some(it) => it,
+            None => return self
+        };
+
+        // create default probe mapping
+        let mut probe_mapping = ProbesMapping::default();
+        match probe_item.get("liveness") {
+            Some(it) => {
+                let probe = probe::Probe::new().set_probe_type(it).finish(it);
+                probe_mapping.liveness = Some(probe);
+            },
+            None => {}
+        };
+
+        match probe_item.get("readiness") {
+            Some(it) => {
+                let probe = probe::Probe::new().set_probe_type(it).finish(it);
+                probe_mapping.readiness = Some(probe);
+            },
+            None => {}
+        }
+
+        self.probes = Some(probe_mapping);
         self
     }
 }
@@ -163,5 +203,36 @@ mod container_test {
         assert_eq!(from.get(0).unwrap().kind, super::env::EnvRefKind::SecretMap);
         assert_eq!(from.get(0).unwrap().name, "google-api-key");
         assert_eq!(from.get(0).unwrap().from, "google::main.key");
+    }
+
+    #[test]
+    fn test_retrieve_probes() {
+        let content = "
+        [spec.containers.node]
+            name = 'node'
+            image = 'node:$tag'
+            ports = [
+                { name = 'http', value = '$port' }
+            ]
+
+            [spec.containers.node.probes]
+                [spec.containers.node.probes.liveness]
+                    kind = 'http'
+                    path = 'foo'
+                    port = 8080                
+                    http_headers = [
+                        { name = 'baz', value = 'wow' },
+                        { name = 'yo', value = 'sabai' }
+                    ]            
+        ";
+
+        let toml_containers = content.parse::<Value>().unwrap();
+        let spec = toml_containers.get("spec").unwrap().as_table().unwrap();
+        let containers = spec.get("containers").unwrap().as_table().unwrap();
+        let node = containers.get("node").unwrap();
+        
+        let container = super::Container::new(&node).unwrap();
+        let probes = container.set_probes(&node);
+        println!("{:?}", probes);
     }
 }
