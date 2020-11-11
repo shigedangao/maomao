@@ -3,23 +3,25 @@ mod port;
 mod env;
 
 use toml::Value;
-use crate::parser::util::get_string_value;
+use crate::helper::err::LibError;
+use crate::parser::utils::helper::get_string_value;
 
-// (Option<String>, Option<Vec<T>>) -> either return a string mean that we make a reference to a patch. If not we make a reference to a description
+// Constant
+const MISSING_PARAMETER: &str = "Missing parameter in the toml template file";
 
 #[derive(Debug)]
-struct Container {
-    name: String,
-    image: String,
-    ports: Option<Vec<port::PortMapping>>,
-    env: Option<env::EnvMap>,
-    probes: Option<ProbesMapping>
+pub struct Container {
+    pub name: String,
+    pub image: String,
+    pub ports: Option<Vec<port::PortMapping>>,
+    pub env: Option<env::EnvMap>,
+    pub probes: Option<ProbesMapping>
 }
 
 #[derive(Debug, Default)]
-struct ProbesMapping {
-    liveness: Option<probe::Probe>,
-    readiness: Option<probe::Probe>
+pub struct ProbesMapping {
+    pub liveness: Option<probe::Probe>,
+    pub readiness: Option<probe::Probe>
 }
 
 impl Container {
@@ -30,15 +32,21 @@ impl Container {
     ///
     /// # Arguments
     /// * `item` - &Value
-    fn new(item: &Value) -> Result<Self, ()> {
+    pub fn new(item: &Value) -> Result<Self, LibError> {
         let name = match get_string_value(&item, "name") {
             Some(n) => n,
-            None => return Err(())
+            None => return Err(LibError {
+                kind: MISSING_PARAMETER.to_owned(),
+                message: "missing parameter: `name`".to_owned()
+            })
         };
 
         let image = match get_string_value(&item, "image") {
             Some(img) => img,
-            None => return Err(())
+            None => return Err(LibError {
+                kind: MISSING_PARAMETER.to_owned(),
+                message: "missing parameter `image`".to_owned()
+            })
         };
 
         Ok(Container {
@@ -58,7 +66,7 @@ impl Container {
     /// # Arguments
     /// * `mut self` - Self
     /// * `item` - &Value
-    fn set_env(mut self, item: &Value) -> Self {
+    pub fn set_env(mut self, item: &Value) -> Self {
         let env_item = match item.get("env") {
             Some(e) => e,
             None => return self
@@ -82,7 +90,7 @@ impl Container {
     /// # Arguments
     /// * `mut self` - Self
     /// * `item` - &Value
-    fn set_probes(mut self, item: &Value) -> Self {
+    pub fn set_probes(mut self, item: &Value) -> Self {
         let probe_item = match item.get("probes") {
             Some(it) => it,
             None => return self
@@ -115,7 +123,7 @@ impl Container {
 #[cfg(test)]
 mod container_test {
     use toml::Value;
-    use crate::parser::util::get_array_for_type;
+    use crate::parser::utils::helper::get_array_for_type;
     use super::port;
         
     #[test]
@@ -204,22 +212,22 @@ mod container_test {
     #[test]
     fn test_retrieve_probes() {
         let content = "
-        [spec.containers.node]
-            name = 'node'
-            image = 'node:$tag'
-            ports = [
-                { name = 'http', value = '$port' }
-            ]
-
-            [spec.containers.node.probes]
-                [spec.containers.node.probes.liveness]
-                    kind = 'http'
-                    path = 'foo'
-                    port = 8080                
-                    http_headers = [
-                        { name = 'baz', value = 'wow' },
-                        { name = 'yo', value = 'sabai' }
-                    ]            
+            [spec.containers.node]
+                name = 'node'
+                image = 'node:$tag'
+                ports = [
+                    { name = 'http', value = '$port' }
+                ]
+        
+                [spec.containers.node.probes]
+                    [spec.containers.node.probes.liveness]
+                        kind = 'http'
+                        path = 'foo'
+                        port = 8080                
+                        http_headers = [
+                            { name = 'baz', value = 'wow' },
+                            { name = 'yo', value = 'sabai' }
+                        ]            
         ";
 
         let toml_containers = content.parse::<Value>().unwrap();

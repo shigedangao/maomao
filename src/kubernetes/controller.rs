@@ -8,3 +8,9 @@ pub enum K8SController {
     CronJob,
     ReplicationController
 }
+
+impl Default for K8SController {
+    fn default() -> Self {
+        return K8SController::Deployment
+    }
+}

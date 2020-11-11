@@ -1,5 +1,5 @@
 kind = "Kubernetes"
-type = "Deployment"
+type = "Controller::Deployment"
 
 [variables]
 tag  = "v1.12.0"
@@ -37,7 +37,6 @@ replicas = 1
                 { name = "greeting", value = "bar" }
             ]
 
-        
         [spec.containers.node.probes]
 
             [probes.liveness]
