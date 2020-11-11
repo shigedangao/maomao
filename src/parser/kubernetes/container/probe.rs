@@ -7,27 +7,27 @@ use crate::parser::util::{
 
 #[derive(Default, Debug)]
 pub struct Probe {
-    http_get: Option<HttpGet>,
-    exec: Option<Exec>,
-    initial_delay_seconds: i64,
-    period_seconds: i64
+    pub http_get: Option<HttpGet>,
+    pub exec: Option<Exec>,
+    pub initial_delay_seconds: i64,
+    pub period_seconds: i64
 }
 
 #[derive(Default, Debug)]
-struct HttpGet {
-    path: String,
-    port: i64,
-    http_headers: Option<Vec<HttpHeaders>>
+pub struct HttpGet {
+    pub path: String,
+    pub port: i64,
+    pub http_headers: Option<Vec<HttpHeaders>>
 }
 
 #[derive(Default, Debug)]
-struct HttpHeaders {
-    name: String,
-    value: String
+pub struct HttpHeaders {
+    pub name: String,
+    pub value: String
 }
 
 #[derive(Default, Debug)]
-struct Exec {
+pub struct Exec {
     command: Vec<String>
 }
 

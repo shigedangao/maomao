@@ -3,11 +3,7 @@ mod port;
 mod env;
 
 use toml::Value;
-use toml::map::Map;
-use crate::parser::util::{
-    get_string_value,
-    get_array_for_type
-};
+use crate::parser::util::get_string_value;
 
 // (Option<String>, Option<Vec<T>>) -> either return a string mean that we make a reference to a patch. If not we make a reference to a description
 
@@ -232,7 +228,29 @@ mod container_test {
         let node = containers.get("node").unwrap();
         
         let container = super::Container::new(&node).unwrap();
+        
         let probes = container.set_probes(&node);
-        println!("{:?}", probes);
+        assert!(probes.probes.is_some());
+
+        // get probe for node container
+        let node_probes = probes.probes.unwrap();
+        assert!(node_probes.liveness.is_some());
+        
+        // get liveness probe for node container
+        let liveness = node_probes.liveness.unwrap();
+        assert!(liveness.http_get.is_some());
+
+        // test liveness http probe
+        let liveness_http_get = liveness.http_get.unwrap();
+        assert_eq!(liveness_http_get.path, "foo");
+        assert_eq!(liveness_http_get.port, 8080);
+
+        // test http headers
+        let liveness_http_headers = liveness_http_get.http_headers.unwrap();
+        assert_eq!(liveness_http_headers.get(0).unwrap().name, "baz");
+        assert_eq!(liveness_http_headers.get(0).unwrap().value, "wow");
+
+        // check readiness does not contain anything
+        assert!(node_probes.readiness.is_none());
     }
 }
