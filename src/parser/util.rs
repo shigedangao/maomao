@@ -45,27 +45,26 @@ pub fn get_value_for_type<T: ConvertNative<T>>(t_content: &Value, key: &str) -> 
 /// Get Array For Type
 ///
 /// # Description
-/// Retrieve an array or a string for the TOML elements
+/// Retrieve an array for the targeted TOML key
 /// The T must implement the toml::Value by using the std::convert::From trait
 /// The method will build a Vector and use the method from to build the desire T
 ///
 /// # Arguments
 /// * `t_content` - &Value
 /// * `key` - &str
-pub fn get_array_for_type<T: From<Value>>(t_content: &Value, key: &str) -> (Option<String>, Option<Vec<T>>) {
-    let content = t_content.get(key);
-    if content.is_none() {
-        return (None, None);
-    }
+pub fn get_array_for_type<T: From<Value>>(t_content: &Value, key: Option<&str>) -> Option<Vec<T>> {
+    let content = match key {
+        Some(k) =>  t_content.get(k),
+        None => Some(t_content)
+    };
 
-    let string = get_string_value(t_content, key);
-    if string.is_some() {
-        return (string, None);
-    }
+    let res = match content {
+        Some(c) => c,
+        None => return None
+    };
 
-    let res = content.unwrap();
     if !res.is_array() {
-        return (None, None);
+        return None;
     }
 
     let array = res.as_array().unwrap();
@@ -74,5 +73,5 @@ pub fn get_array_for_type<T: From<Value>>(t_content: &Value, key: &str) -> (Opti
         .map(|v| T::from(v.to_owned()))
         .collect::<Vec<T>>();
 
-    (None, Some(t_vec))
+    Some(t_vec)
 }
