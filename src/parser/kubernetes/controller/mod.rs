@@ -15,9 +15,6 @@ const MISSING_CONTAINER_MSG: &str = "Make sure that [spec.containers] is under t
 const MALFORMATTED_CONTAINERS: &str = "Make sure that [spec.containers] is a TOML table field";
 const MALFORMATTED_CONTAINERS_MSG: &str = "[spec.containers] must be a TOML table field";
 
-const ERROR_CREATE_CONTAINER: &str = "Error while creating containers";
-
-
 #[derive(Default, Debug)]
 pub struct Controller {
     kind: K8SController,
@@ -48,7 +45,7 @@ impl Controller {
     ///
     /// # Arguments
     /// * `content` - Option<Value>
-    fn set_containers(mut self, content: Option<Value>) -> Result<Self, LibError> {
+    pub fn set_containers(mut self, content: Option<Value>) -> Result<Self, LibError> {
         let templates = content.ok_or(LibError {
             kind: MISSING_TEMPLATE.to_owned(),
             message: MISSING_TEMPLATE_MSG.to_owned()

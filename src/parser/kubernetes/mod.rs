@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use toml::Value;
 use crate::helper::err::LibError;
 
-
 // Constant error
 const MISSING_KIND: &str = "Missing kubernetes object type";
 const MALFORMATED_KIND: &str = "Template `type` value is malformated";
@@ -28,6 +27,14 @@ pub trait KubernetesResources {
     /// # Arguments
     /// * `content` - Option<Value>
     fn new() -> Self;
+    /// Set Kind
+    ///
+    /// # Description
+    /// Set the type of the sub object (i.e: Deployment for controller, NodePort for Service)
+    ///
+    /// # Arguments
+    /// * `kind` - &str
+    fn set_kind(self, kind: &str) -> Self;
     /// Set Metadata
     ///
     /// # Description
@@ -46,7 +53,7 @@ pub trait KubernetesResources {
 ///
 /// # Arguments
 /// * `k8s_type` - Option<String>
-pub fn get_kubernetes_kind_object(k8s_type: Option<String>, toml_content: Option<Value>) -> Result<(), LibError> {
+pub fn get_kubernetes_controller(k8s_type: Option<String>, toml_content: Option<Value>) -> Result<(), LibError> {
     let t = k8s_type.ok_or(LibError {
         kind: MISSING_KIND.to_owned(),
         message: MISSING_KIND_ERR.to_owned()
@@ -62,13 +69,13 @@ pub fn get_kubernetes_kind_object(k8s_type: Option<String>, toml_content: Option
         })
     }
 
-    if let Some(kind ) = resource_kind.get(0) {
-        match kind.to_lowercase().as_str() {
-            "controller" => {},
-            "network" => {}, 
-            _ => {}
-        }
-    }
-    
+    let resource_type = resource_kind.get(1).ok_or_else(|| LibError {
+        kind: MALFORMATED_KIND.to_owned(),
+        message: MISSING_KIND.to_owned(),
+    })?;
+
+    let controller = controller::Controller::new()
+        .set_containers(toml_content);
+
     Ok(())
 }
