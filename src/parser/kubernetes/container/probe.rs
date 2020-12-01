@@ -1,6 +1,6 @@
 use std::convert::From;
 use toml::Value;
-use crate::parser::util::{
+use crate::parser::utils::helper::{
     get_string_value,
     get_value_for_type
 };
@@ -77,7 +77,7 @@ impl Probe {
 
     /// Finish
     ///
-    /// # Description
+    /// # Arguments
     /// * `self` - Self
     /// * `item` - &Value
     pub fn finish(mut self, item: &Value) -> Self {

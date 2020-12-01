@@ -1,8 +1,8 @@
 use std::convert::From;
 use toml::value::Value;
 use toml::map::Map;
-use crate::parser::conv::ConvertNative;
-use crate::parser::util::get_array_for_type;
+use crate::parser::utils::from::ConvertNative;
+use crate::parser::utils::helper::get_array_for_type;
 
 #[derive(PartialEq, Debug)]
 pub enum EnvRefKind {

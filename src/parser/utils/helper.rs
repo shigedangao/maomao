@@ -1,6 +1,6 @@
 use std::convert::From;
 use toml::Value;
-use super::conv::ConvertNative;
+use super::from::ConvertNative;
 
 /// Get String Value
 ///

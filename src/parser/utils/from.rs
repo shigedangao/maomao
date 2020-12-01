@@ -1,4 +1,5 @@
 use toml::Value;
+use std::collections::HashMap;
 
 /// ConvertNative trait
 ///
@@ -35,11 +36,7 @@ impl ConvertNative<String> for String {
 
 impl ConvertNative<Vec<String>> for Vec<String> {
     fn to(item: &Value) -> Option<Vec<String>> {
-        if !item.is_array() {
-            return None;
-        }
-
-        let array = item.as_array().unwrap();
+        let array = item.as_array()?;
         let vec = array
             .iter()
             .map(|f| f.as_str())
@@ -48,5 +45,19 @@ impl ConvertNative<Vec<String>> for Vec<String> {
             .collect::<Vec<String>>();
 
         Some(vec)
+    }
+}
+
+impl ConvertNative<HashMap<String, String>> for HashMap<String, String> {
+    fn to(item: &Value) -> Option<HashMap<String, String>> {
+        let mut map = HashMap::new();
+        let fields = item.as_table()?;
+        for (n, v) in fields.iter() {
+            if let Some(s) = v.as_str() {
+                map.insert(n.to_owned(), s.to_owned());
+            }
+        }
+
+        Some(map)
     }
 }

@@ -1,6 +1,6 @@
 use std::convert::From;
 use toml::Value;
-use crate::parser::util::get_string_value;
+use crate::parser::utils::helper::get_string_value;
 
 #[derive(Debug, Default)]
 pub struct PortMapping {

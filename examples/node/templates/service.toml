@@ -1,5 +1,5 @@
 kind = "Kubernetes"
-type = "Service"
+type = "Network::Service"
 
 [variables]
 name = "$deployment.name"
