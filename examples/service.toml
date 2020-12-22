@@ -1,0 +1,13 @@
+# a service
+kind = "network::service"
+name = "rusty"
+metadata = { name = "rusty", tier = "backend" }
+
+type = "nodeport"
+
+[ports]
+
+    [ports.http]
+    protocol = "TCP"
+    port = 80
+    target_port = 90

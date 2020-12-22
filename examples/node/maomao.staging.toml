@@ -1,9 +1,0 @@
-[env]
-    [env.misc]
-    NODE_ENV = "staging"
-    WORKLOAD_TAG = "staging"
-    BASE_URL = "https://"
-
-    [env.api]
-    protocol = "https://"
-    endpoint = "staging.node.ops/v1"

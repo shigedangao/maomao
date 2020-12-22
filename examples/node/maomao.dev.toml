@@ -1,9 +1,0 @@
-[env]
-    [env.misc]
-    NODE_ENV = "dev"
-    WORKLOAD_TAG = "dev"
-    BASE_URL = "https://"
-
-    [env.api]
-    protocol = "https://"
-    endpoint = "dev.node.ops/v1"
