@@ -91,7 +91,7 @@ pub fn get_parsed_objects(tmpl: &str) -> Result<Object, LError> {
 mod test {
     
     #[test]
-    fn test_parsed_objects() {
+    fn expect_parse_basic_metadata() {
         let template = "
             kind = 'workload::deployment'
             name = 'rusty'
@@ -99,11 +99,37 @@ mod test {
         ";
 
         let object = super::get_parsed_objects(template);
-        assert!(!object.is_err());
+        assert!(object.is_ok());
 
         let object = object.unwrap();
         assert_eq!(object.name, "rusty");
         assert_eq!(object.metadata.get("tier").unwrap(), "backend");
         assert_eq!(object.kind, super::Kind::Workload("deployment".to_owned()))
+    }
+
+    #[test]
+    fn expect_kind_to_none_metadata() {
+        let template = "
+            kind = 'wrongworkload'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+        ";
+
+        let object = super::get_parsed_objects(template);
+        assert!(object.is_ok());
+
+        let object = object.unwrap();
+        assert_eq!(object.kind, super::Kind::None);
+    }
+
+    #[test]
+    fn exepct_to_return_err_missing_name_metadata() {
+        let template = "
+            kind = 'workload::deployment'
+            metadata = { name = 'rusty', tier = 'backend' }
+        ";
+
+        let object = super::get_parsed_objects(template);
+        assert!(object.is_err());
     }
 }
