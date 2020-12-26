@@ -4,25 +4,27 @@ name = "rusty"
 metadata = { name = "rusty", tier = "backend" }
 
 # container name rust
-[container_rust]
-image = "foo"
-tag = "bar"
+[workload]
 
-    # env from
-    [container_rust.env_from]
-    map = [
-        "default_configmap"
-    ]
-    secret = [
-        "default_secret"
-    ]
+    [workload.rust]
+    image = "foo"
+    tag = "bar"
 
-    # env
-    [container_rust.env]
-    from = [
-        { type = "map", name = "foo", key = "lol" },
-        { type = "res_field", name = "rust-container", key = "limits.cpu" }
-    ]
-    raw = [
-        { name = "A_VALUE", value = "bar" }
-    ]
+        # env from
+        [workload.rust.env_from]
+        map = [
+            "default_configmap"
+        ]
+        secret = [
+            "default_secret"
+        ]
+
+        # env
+        [workload.rust.env]
+        from = [
+            { type = "map", name = "foo", key = "lol" },
+            { type = "res_field", name = "rust-container", key = "limits.cpu" }
+        ]
+        raw = [
+            { name = "A_VALUE", value = "bar" }
+        ]

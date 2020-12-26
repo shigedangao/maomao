@@ -1,3 +1,7 @@
+mod network;
+mod workload;
+mod spec;
+
 use std::collections::BTreeMap;
 use toml::Value;
 use super::helper::error::LError;
@@ -55,7 +59,48 @@ pub struct Object {
     kind: Kind,
     name: String,
     metadata: BTreeMap<String, String>,
-    // spec: ?
+    spec: Option<spec::Spec>,
+}
+
+impl Object {
+    /// New
+    ///
+    /// # Description
+    /// Construct a new Object structure by filling the basic informations
+    /// - name
+    /// - metadata
+    /// - kind (kind of template)
+    ///
+    /// # Arguments
+    /// * `ast` - &Value
+    ///
+    /// # Return
+    /// Result<Object, LError>
+    fn new(ast: &Value) -> Result<Object, LError> {
+        let name = get_value_for_t::<String>(ast, "name")?;
+        let kind = Kind::convert(ast);
+        let metadata = get_value_for_t::<BTreeMap<String, String>>(ast, "metadata")?;
+
+        Ok(Object {
+            kind,
+            name,
+            metadata,
+            spec: None
+        })
+    }
+
+    /// Set Spec
+    ///
+    /// # Description
+    /// Set the spec field in the Object struct
+    ///
+    /// # Arguments
+    /// * `&mut self` - Self
+    /// * `ast` - &Value
+    fn set_spec(&mut self, ast: &Value) {
+        let spec = spec::get_spec(ast);
+        self.spec = Some(spec);
+    }
 }
 
 /// Get Parsed Objects
@@ -74,15 +119,10 @@ pub fn get_parsed_objects(tmpl: &str) -> Result<Object, LError> {
         Err(err) => return Err(LError{ message: err.to_string() })
     };
 
-    let name = get_value_for_t::<String>(&ast, "name")?;
-    let kind = Kind::convert(&ast);
-    let metadata = get_value_for_t::<BTreeMap<String, String>>(&ast, "metadata")?;
-
-    Ok(Object {
-        kind,
-        name,
-        metadata
-    })
+    let mut object = Object::new(&ast)?;
+    object.set_spec(&ast);
+    
+    Ok(object)
 }
 
 
@@ -131,5 +171,27 @@ mod test {
 
         let object = super::get_parsed_objects(template);
         assert!(object.is_err());
+    }
+
+    #[test]
+    fn expect_object_to_contains_spec() {
+        let template = "
+            kind = 'workload::deployment'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [workload]
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+        ";
+
+        let object = super::get_parsed_objects(template);
+        assert!(object.is_ok());
+
+        let object = object.unwrap();
+        assert!(object.spec.is_some());
+        assert!(object.spec.unwrap().workload.is_ok());
     }
 }
