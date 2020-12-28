@@ -2,7 +2,7 @@ use std::fmt;
 use std::io;
 use std::convert::From;
 
-/// LibError
+/// LError
 ///
 /// # Description
 /// A generic error representation

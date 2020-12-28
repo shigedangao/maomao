@@ -54,6 +54,35 @@ impl Container {
             ..Default::default()
         })
     }
+
+    /// Set Envs
+    ///
+    /// # Description
+    /// Set the environment variables from the workload template
+    /// We'll set:
+    /// - env
+    /// - envFrom
+    /// See examples/deployment.toml to see how looks this field. Or refer to the unit test below
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `ast` - &Value
+    ///
+    /// # Return
+    /// Self
+    fn set_envs(mut self, ast: &Value) -> Self {
+        match env::get_envs(ast) {
+            Ok(res) => self.env = Some(res),
+            // @TODO probably should log an error here ?
+            //       see a logger on the CLI side
+            Err(err) => {
+                println!("{:?}", err);
+                self.env = None
+            }
+        };
+
+        self
+    }
 }
 
 /// Get Workload
@@ -78,7 +107,7 @@ pub fn get_workload(ast: &Value) -> Result<Workload, LError> {
     let mut containers = Vec::new();
     // @TODO check if we can convert this into a more functional way
     for (name, items) in specs.into_iter() {
-        let container = Container::new(name, items)?;
+        let container = Container::new(name, items)?.set_envs(items);
         containers.push(container);
     }
 
@@ -118,5 +147,54 @@ mod test {
         assert_eq!(container.name, "rust");
         assert_eq!(container.image.repo, "foo");
         assert_eq!(container.image.tag, "bar");
+    }
+
+    #[test]
+    fn expect_parse_env_workload() {
+        let template = "
+            kind = 'workload::deployment'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [workload]
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+
+                    [workload.rust.env]
+                    from = [
+                        { type = 'map', name = 'foo', item = 'lol' },
+                        { type = 'res_field', name = 'rust-container', item = 'limits.cpu' }
+                    ]
+                    raw = [
+                        { name = 'A_VALUE', item = 'bar' }
+                    ]
+        ";
+
+        let ast = template.parse::<Value>().unwrap();
+        let workload = super::get_workload(&ast);
+
+        assert!(workload.is_ok());
+
+        let workload = workload.unwrap();
+        let rust = workload.containers.get(0);
+        assert!(rust.is_some());
+        
+        let container = rust.unwrap();
+        assert!(container.env.is_some());
+
+        let env = container.env.as_ref().unwrap();
+        assert!(!env.from.is_empty());
+        assert!(!env.raw.is_empty());
+
+        let from = env.from.get(0).unwrap();
+        assert_eq!(from.kind.as_ref().unwrap(), "map");
+        assert_eq!(from.name, "foo");
+        assert_eq!(from.item, "lol");
+
+        let raw = env.raw.get(0).unwrap();
+        assert_eq!(raw.name, "A_VALUE");
+        assert_eq!(raw.item, "bar");
     }
 }
