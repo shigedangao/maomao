@@ -81,6 +81,16 @@ impl Container {
             }
         };
 
+        match env::get_env_from(ast) {
+            Ok(res) => self.env_from = Some(res),
+            // @TODO probably should log an error here ?
+            //       see a logger on the CLI side
+            Err(err) => {
+                println!("{:?}", err);
+                self.env_from = None;
+            }
+        }
+
         self
     }
 }
@@ -196,5 +206,50 @@ mod test {
         let raw = env.raw.get(0).unwrap();
         assert_eq!(raw.name, "A_VALUE");
         assert_eq!(raw.item, "bar");
+    }
+
+    #[test]
+    fn expect_parse_env_from_workload() {
+        let template = "
+            kind = 'workload::deployment'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [workload]
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+
+                    [workload.rust.env_from]
+                    map = [
+                        'default_configmap'
+                    ]
+                    secret = [
+                        'default_secret'
+                    ]
+        ";
+
+        let ast = template.parse::<Value>().unwrap();
+        let workload = super::get_workload(&ast);
+
+        assert!(workload.is_ok());
+
+        let workload = workload.unwrap();
+        let rust = workload.containers.get(0);
+        assert!(rust.is_some());
+        
+        let container = rust.unwrap();
+        assert!(container.env_from.is_some());
+
+        let env_from = container.env_from.as_ref().unwrap();
+        assert!(!env_from.map.is_empty());
+        assert!(!env_from.secret.is_empty());
+
+        let map = env_from.map.get(0).unwrap();
+        assert_eq!(map, "default_configmap");
+
+        let secret = env_from.secret.get(0).unwrap();
+        assert_eq!(secret, "default_secret");
     }
 }

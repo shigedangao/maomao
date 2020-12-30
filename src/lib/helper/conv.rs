@@ -50,3 +50,17 @@ impl Convert for BTreeMap<String, String> {
         map
     }
 }
+
+impl Convert for Vec<String> {
+    fn convert(v: &Value) -> Self {
+        if !v.is_array() {
+            return Vec::new();
+        }
+
+        let array = v.as_array().unwrap();
+        array
+            .into_iter()
+            .map(|s| String::convert(s))
+            .collect()
+    }
+}
