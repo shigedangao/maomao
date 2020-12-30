@@ -1,13 +1,15 @@
 # a service
+# a network file could be of type network::service / network::ingress
 kind = "network::service"
 name = "rusty"
 metadata = { name = "rusty", tier = "backend" }
 
-type = "nodeport"
+[service]
+    type = "nodeport"
 
-[ports]
+    [service.ports]
 
-    [ports.http]
-    protocol = "TCP"
-    port = 80
-    target_port = 90
+        [service.ports.http]
+            protocol = "TCP"
+            port = 80
+            target_port = 90
