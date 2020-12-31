@@ -76,7 +76,6 @@ impl Container {
             // @TODO probably should log an error here ?
             //       see a logger on the CLI side
             Err(err) => {
-                println!("{:?}", err);
                 self.env = None
             }
         };
@@ -86,7 +85,6 @@ impl Container {
             // @TODO probably should log an error here ?
             //       see a logger on the CLI side
             Err(err) => {
-                println!("{:?}", err);
                 self.env_from = None;
             }
         }

@@ -36,8 +36,15 @@ impl Network {
     ///
     /// # Return
     /// Self
-    fn set_service(mut self, ast: Option<&Value>) -> Self {
-        self
+    fn set_service(mut self, ast: Option<&Value>) -> Result<Self, LError> {
+        if let Some(a) = ast {
+            match service::get_service(a) {
+                Ok(res) => self.service = Some(res),
+                Err(err) => return Err(err)
+            }
+        }
+
+        Ok(self)
     }
 
     /// Set Ingress
@@ -68,7 +75,7 @@ pub fn get_network(ast: &Value) -> Result<Network, LError> {
     let ingress_field = ast.get("ingress");
 
     let network = network
-        .set_service(service_field)
+        .set_service(service_field)?
         .set_ingress(ingress_field);
 
     Ok(network)

@@ -32,6 +32,18 @@ impl Convert for String {
     }
 }
 
+impl Convert for i64 {
+    fn convert(v: &Value) -> Self {
+        if v.is_integer() {
+            return v
+                .as_integer()
+                .unwrap();
+        }
+
+        0
+    }
+}
+
 impl Convert for BTreeMap<String, String> {
     fn convert(v: &Value) -> Self {
         if !v.is_table() {
