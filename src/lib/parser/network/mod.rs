@@ -1,4 +1,6 @@
 mod service;
+mod ingress;
+mod backend;
 
 use toml::Value;
 use crate::lib::helper::error::LError;
@@ -66,6 +68,16 @@ impl Network {
     }
 }
 
+/// Get Network
+///
+/// # Description
+/// Get the network struct
+///
+/// # Arguments
+/// * `ast` - &Value
+///
+/// # Return
+/// Result<Network, LError>
 pub fn get_network(ast: &Value) -> Result<Network, LError> {
     // get the default network struct
     let network = Network::new();

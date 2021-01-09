@@ -122,7 +122,7 @@ mod test {
     use super::get_service;
     
     #[test]
-    fn parse_service_type() {
+    fn expect_to_parse_service_type() {
         let template = "
             [service]
                 type = 'nodeport'
@@ -138,7 +138,7 @@ mod test {
     }
 
     #[test]
-    fn parse_service_ports_type() {
+    fn expect_to_parse_service_ports_type() {
         let template = "
             [service]
                 type = 'nodeport'
@@ -162,5 +162,18 @@ mod test {
         assert_eq!(http.protocol, "TCP");
         assert_eq!(http.port, 80);
         assert_eq!(http.target_port, 90);
+    }
+
+    #[test]
+    fn expect_to_not_parse_service() {
+        let template = "
+            [service]
+        ";
+
+        let ast = template.parse::<Value>().unwrap();
+        let service_ast = ast.get("service").unwrap();
+
+        let service = get_service(&service_ast);
+        assert!(service.is_err());
     }
 }

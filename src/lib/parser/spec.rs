@@ -1,5 +1,5 @@
 use toml::Value;
-use super::network::Network;
+use super::network::{Network, get_network};
 use super::workload::{Workload, get_workload};
 use crate::lib::helper::error::LError;
 
@@ -14,7 +14,7 @@ use crate::lib::helper::error::LError;
 pub struct Spec {
     pub workload: Result<Workload, LError>,
     // pub network: Result<Network, LError>,
-    pub network: Option<Network>
+    pub network: Result<Network, LError>
 }
 
 /// Get Spec
@@ -29,9 +29,10 @@ pub struct Spec {
 /// Spec
 pub fn get_spec(ast: &Value) -> Spec {
     let workload = get_workload(ast);
+    let network = get_network(ast);
 
     Spec {
         workload,
-        network: None
+        network
     }
 }
