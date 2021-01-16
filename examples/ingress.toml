@@ -1,0 +1,30 @@
+kind = "network::ingress"
+name = "rusty"
+metadata = { name = "rusty", tier = "ingress" }
+
+[ingress]
+
+    # ingress.default is a reserved keyword
+    [ingress.default]
+        backend = { name = "rusty", port = 80 }
+
+    [ingress.rules]
+
+        [ingress.rules.rusty]
+            host = "foo.bar.com"
+
+            [ingress.rules.rusty.paths]
+
+                [ingress.rules.rusty.paths.0]
+                    type = "Prefix"
+                    path = "/"
+                    backend = { name = "rusty", port = 80 }
+
+    [ingress.tls]
+        hosts = [
+            'foo.bar.com',
+            'bar.com.capoo'
+        ]
+        secrets = [
+            'foo-ssl-certificates'
+        ]

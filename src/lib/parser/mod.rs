@@ -194,4 +194,54 @@ mod test {
         assert!(object.spec.is_some());
         assert!(object.spec.unwrap().workload.is_ok());
     }
+
+    #[test]
+    fn expect_to_parse_service_spec() {
+        let template = "
+            kind = 'network::service'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [service]
+                type = 'nodeport'
+
+                [service.ports]
+
+                    [service.ports.http]
+                        protocol = 'HTTP'
+                        port = 90
+                        target_port = 1000
+        ";
+
+        let object = super::get_parsed_objects(template);
+        assert!(object.is_ok());
+        
+        let network = object.unwrap().spec.unwrap().network.unwrap();
+        let service = network.service;
+        assert!(service.is_some());
+        assert_eq!(service.unwrap().kind, "nodeport");
+    }
+
+
+    #[test]
+    fn expect_to_parse_ingress_spec() {
+        let template = "
+            kind = 'network::service'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [ingress]
+                [ingress.default]
+                    backend = { name = 'capoo', port = 8000 }
+
+        ";
+
+        let object = super::get_parsed_objects(template);
+        assert!(object.is_ok());
+        
+        let network = object.unwrap().spec.unwrap().network.unwrap();
+        let ingress = network.ingress;
+        assert!(ingress.is_some());
+        assert_eq!(ingress.unwrap().default.unwrap().name, "capoo");
+    }
 }
