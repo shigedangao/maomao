@@ -5,6 +5,12 @@ mod backend;
 use toml::Value;
 use crate::lib::helper::error::LError;
 
+/// Network
+///
+/// # Description
+/// Struct use to retrieve network type of template
+/// /!\ Note: It's possible to mix an ingress & service resource at the same time
+///     Should we preserve this possibility ?
 #[derive(Debug, Default)]
 pub struct Network {
     pub service: Option<service::Service>,

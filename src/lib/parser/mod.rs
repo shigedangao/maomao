@@ -211,11 +211,6 @@ mod test {
                         protocol = 'HTTP'
                         port = 90
                         target_port = 1000
-
-            [ingress]
-                [ingress.default]
-                    backend = { name = 'capoo', port = 8000 }
-
         ";
 
         let object = super::get_parsed_objects(template);
