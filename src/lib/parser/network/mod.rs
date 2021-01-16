@@ -7,7 +7,8 @@ use crate::lib::helper::error::LError;
 
 #[derive(Debug, Default)]
 pub struct Network {
-    service: Option<service::Service>
+    pub service: Option<service::Service>,
+    pub ingress: Option<ingress::Ingress>
 }
 
 impl Network {
@@ -37,7 +38,7 @@ impl Network {
     /// `ast` - Option<&Value>
     ///
     /// # Return
-    /// Self
+    /// Result<Self, LError>
     fn set_service(mut self, ast: Option<&Value>) -> Result<Self, LError> {
         if let Some(a) = ast {
             match service::get_service(a) {
@@ -62,9 +63,16 @@ impl Network {
     /// * `ast` - Option<&Value>
     ///
     /// # Return
-    /// Self
-    fn set_ingress(mut self, ast: Option<&Value>) -> Self {
-        self
+    /// Result<Self, LError>
+    fn set_ingress(mut self, ast: Option<&Value>) -> Result<Self, LError> {
+        if let Some(node) = ast {
+            match ingress::get_ingress(node) {
+                Ok(res) => self.ingress = Some(res),
+                Err(err) => return Err(err)
+            };
+        }
+
+        Ok(self)
     }
 }
 
@@ -88,7 +96,7 @@ pub fn get_network(ast: &Value) -> Result<Network, LError> {
 
     let network = network
         .set_service(service_field)?
-        .set_ingress(ingress_field);
+        .set_ingress(ingress_field)?;
 
     Ok(network)
 }

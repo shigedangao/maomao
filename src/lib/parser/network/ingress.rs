@@ -1,6 +1,5 @@
 use toml::Value;
 use std::convert::From;
-use std::collections::BTreeMap;
 use crate::lib::helper::error::LError;
 use crate::lib::helper::toml::{get_value_for_t, get_value_for_t_from};
 use crate::lib::helper::conv::Convert;
@@ -13,9 +12,9 @@ const MISSING_INGRESS_RULES: &str = "Missing ingress [rules] property";
 
 #[derive(Debug)]
 pub struct Ingress {
-    default: Option<backend::Backend>,
-    rules: Option<Vec<IngressRule>>,
-    tls: Option<Tls>
+    pub default: Option<backend::Backend>,
+    pub rules: Option<Vec<IngressRule>>,
+    pub tls: Option<Tls>
 }
 
 #[derive(Debug)]

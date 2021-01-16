@@ -8,8 +8,8 @@ use crate::lib::helper::toml::get_value_for_t;
 pub struct Service {
     // We don't do a check on the kind here
     // This will be done by an other module
-    kind: String,
-    ports: Option<BTreeMap<String, Port>>
+    pub kind: String,
+    pub ports: Option<BTreeMap<String, Port>>
 }
 
 #[derive(Debug)]
