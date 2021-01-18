@@ -4,6 +4,9 @@ kind = "network::service"
 name = "rusty"
 metadata = { name = "rusty", tier = "backend" }
 
+[annotations]
+"external-dns.alpha.kubernetes.io/hostname" = "rusty.dev.org."
+
 [service]
     type = "nodeport"
 

@@ -59,6 +59,7 @@ pub struct Object {
     kind: Kind,
     name: String,
     metadata: BTreeMap<String, String>,
+    annotations: Option<BTreeMap<String, String>>,
     spec: Option<spec::Spec>,
 }
 
@@ -85,8 +86,26 @@ impl Object {
             kind,
             name,
             metadata,
+            annotations: None,
             spec: None
         })
+    }
+
+    /// Set Annotations
+    ///
+    /// # Description
+    /// Set the annotations of a template
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `ast` - &Value
+    fn set_annotations(mut self, ast: &Value) -> Self {
+        let annotations = get_value_for_t::<BTreeMap<String, String>>(ast, "annotations");
+        if let Ok(res) = annotations {
+            self.annotations = Some(res);
+        }
+
+        self
     }
 
     /// Set Spec
@@ -95,11 +114,13 @@ impl Object {
     /// Set the spec field in the Object struct
     ///
     /// # Arguments
-    /// * `&mut self` - Self
+    /// * `mut self` - Self
     /// * `ast` - &Value
-    fn set_spec(&mut self, ast: &Value) {
+    fn set_spec(mut self, ast: &Value) -> Self {
         let spec = spec::get_spec(ast);
         self.spec = Some(spec);
+
+        self
     }
 }
 
@@ -119,9 +140,7 @@ pub fn get_parsed_objects(tmpl: &str) -> Result<Object, LError> {
         Err(err) => return Err(LError{ message: err.to_string() })
     };
 
-    let mut object = Object::new(&ast)?;
-    object.set_spec(&ast);
-    
+    let object = Object::new(&ast)?.set_annotations(&ast).set_spec(&ast);
     Ok(object)
 }
 
@@ -145,6 +164,29 @@ mod test {
         assert_eq!(object.name, "rusty");
         assert_eq!(object.metadata.get("tier").unwrap(), "backend");
         assert_eq!(object.kind, super::Kind::Workload("deployment".to_owned()))
+    }
+
+    #[test]
+    fn expect_to_parse_annotations() {
+        let template = "
+            kind = 'workload::deployment'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [annotations]
+                foo = 'rusty'
+                'bar' = 'bobba'
+        ";
+
+        let object = super::get_parsed_objects(template);
+        assert!(object.is_ok());
+
+        let object = object.unwrap();
+        assert!(object.annotations.is_some());
+        
+        let annotations = object.annotations.unwrap();
+        assert_eq!(annotations.get("foo").unwrap(), "rusty");
+        assert_eq!(annotations.get("bar").unwrap(), "bobba");
     }
 
     #[test]
