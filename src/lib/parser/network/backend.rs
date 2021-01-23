@@ -2,7 +2,7 @@ use toml::Value;
 use std::convert::From;
 use crate::lib::helper::toml::get_value_for_t;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Backend {
     pub name: String,
     pub port: i64

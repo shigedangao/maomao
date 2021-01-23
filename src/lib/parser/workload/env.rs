@@ -1,7 +1,10 @@
 use toml::Value;
 use std::convert::From;
 use crate::lib::helper::error::LError;
-use crate::lib::helper::toml::get_value_for_t;
+use crate::lib::helper::toml::{
+    get_value_for_t,
+    get_value_for_t_lax
+};
 use crate::lib::helper::conv::Convert;
 
 
@@ -18,34 +21,34 @@ const ENV_FROM_MAP_KEYNAME: &str = "map";
 const ENV_FROM_SECRET_KEYNAME: &str = "secret";
 
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EnvFrom {
     pub map: Vec<String>,
     pub secret: Vec<String>
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Env {
     pub from: Vec<EnvRefKey>,
     pub raw: Vec<EnvRefKey>
 }
 
 // Use by Env
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EnvRefKey {
-    pub kind: Option<String>,
-    pub name: String,
-    pub item: String
+    pub from_field: Option<String>,
+    pub item: Option<String>,
+    pub name: String
 }
 
 impl From<Value> for EnvRefKey {
     fn from(ast: Value) -> Self {
-        let tp = get_value_for_t::<String>(&ast, "type").unwrap_or(String::new());
+        let from_field = get_value_for_t_lax::<String>(&ast, "from_field");
+        let item = get_value_for_t_lax::<String>(&ast, "item");
         let name = get_value_for_t::<String>(&ast, "name").unwrap_or(String::new());
-        let item = get_value_for_t::<String>(&ast, "item").unwrap_or(String::new());
 
         EnvRefKey {
-            kind: Some(tp),
+            from_field,
             name,
             item
         }

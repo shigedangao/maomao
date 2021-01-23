@@ -1,30 +1,33 @@
-mod env;
+// @Deprecated
+pub mod env;
 
 use crate::lib::helper::error::LError;
-use crate::lib::helper::toml::get_value_for_t;
+use crate::lib::helper::toml::{get_value_for_t, get_value_for_t_lax};
 use toml::Value;
 
 // Constant
 const WORKLOAD_NOT_EXIST: &str = "Workload does not exist. Make sure that [workload] is set on the template";
 const WORKLOAD_MALFORMATTED: &str = "Workload is malformatted. Please check that workload is above it's children";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Workload {
-    containers: Vec<Container>
+    pub replicas: i32,
+    pub containers: Vec<Container>
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Image {
-    repo: String,
-    tag: String
+    pub repo: String,
+    pub tag: String,
+    pub policy: Option<String>
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Container {
-    name: String,
-    image: Image,
-    env_from: Option<env::EnvFrom>,
-    env: Option<env::Env>
+    pub name: String,
+    pub image: Image,
+    pub env_from: Option<env::EnvFrom>,
+    pub env: Option<env::Env>
 }
 
 impl Container {
@@ -44,12 +47,14 @@ impl Container {
     fn new(name: &String, ast: &Value) -> Result<Self, LError> {
         let image_repo = get_value_for_t::<String>(ast, "image")?;
         let image_tag = get_value_for_t::<String>(ast, "tag")?;
+        let policy = get_value_for_t_lax::<String>(ast, "policy");
 
         Ok(Container {
             name: name.to_string(),
             image: Image {
                 repo: image_repo,
-                tag: image_tag
+                tag: image_tag,
+                policy
             },
             ..Default::default()
         })
@@ -63,6 +68,8 @@ impl Container {
     /// - env
     /// - envFrom
     /// See examples/deployment.toml to see how looks this field. Or refer to the unit test below
+    /// /!\ If an error occurred we consider that it might be because the field is missing. Hence we do nothing when there is an error
+    ///     The code will continue for the next case
     ///
     /// # Arguments
     /// * `mut self` - Self
@@ -71,25 +78,61 @@ impl Container {
     /// # Return
     /// Self
     fn set_envs(mut self, ast: &Value) -> Self {
-        match env::get_envs(ast) {
-            Ok(res) => self.env = Some(res),
-            // @TODO probably should log an error here ?
-            //       see a logger on the CLI side
-            Err(err) => {
-                self.env = None
-            }
-        };
+        if let Ok(res) = env::get_envs(ast) {
+            self.env = Some(res);
+        }
 
-        match env::get_env_from(ast) {
-            Ok(res) => self.env_from = Some(res),
-            // @TODO probably should log an error here ?
-            //       see a logger on the CLI side
-            Err(err) => {
-                self.env_from = None;
-            }
+        if let Ok(res) = env::get_env_from(ast) {
+            self.env_from = Some(res);
         }
 
         self
+    }
+}
+
+impl Workload {
+    /// New
+    ///
+    /// # Description
+    /// Create a new Workload
+    ///
+    /// # Arguments
+    /// * `ast` - &Value
+    ///
+    /// # Return
+    /// Result<Self, LError>
+    fn new(ast: &Value) -> Result<Self, LError> {
+        let replicas = get_value_for_t::<i32>(ast, "replicas")?;
+        Ok(Workload {
+            replicas,
+            containers: Vec::new()
+        })
+    }
+
+    /// Set Spec
+    ///
+    /// # Description
+    /// * `mut self` - Self
+    /// * `ast` - &Value
+    ///
+    /// # Return
+    /// Result<Self, LError>
+    fn set_spec(mut self, ast: &Value) -> Result<Self, LError> {
+        let specs = ast.as_table().ok_or_else(|| LError {
+            message: WORKLOAD_MALFORMATTED.to_owned()
+        })?;
+
+        let mut containers = Vec::new();
+        for (name, items) in specs.into_iter() {
+            if items.is_table() {
+                let container = Container::new(name, items)?.set_envs(items);
+                containers.push(container);
+            }
+        }
+        
+        self.containers = containers;
+
+        Ok(self)
     }
 }
 
@@ -108,20 +151,7 @@ pub fn get_workload(ast: &Value) -> Result<Workload, LError> {
         message: WORKLOAD_NOT_EXIST.to_owned()
     })?;
 
-    let specs = workload.as_table().ok_or_else(|| LError {
-        message: WORKLOAD_MALFORMATTED.to_owned()
-    })?;
-
-    let mut containers = Vec::new();
-    // @TODO check if we can convert this into a more functional way
-    for (name, items) in specs.into_iter() {
-        let container = Container::new(name, items)?.set_envs(items);
-        containers.push(container);
-    }
-
-    Ok(Workload {
-        containers
-    })
+    Workload::new(workload)?.set_spec(workload)
 }
 
 #[cfg(test)]
@@ -136,10 +166,12 @@ mod test {
             metadata = { name = 'rusty', tier = 'backend' }
 
             [workload]
+                replicas = 3
 
                 [workload.rust]
                     image = 'foo'
                     tag = 'bar'
+                    policy = 'IfNotPresent'
         ";
 
         let ast = template.parse::<Value>().unwrap();
@@ -155,6 +187,7 @@ mod test {
         assert_eq!(container.name, "rust");
         assert_eq!(container.image.repo, "foo");
         assert_eq!(container.image.tag, "bar");
+        assert_eq!(container.image.policy.as_ref().unwrap(), "IfNotPresent");
     }
 
     #[test]
@@ -165,6 +198,7 @@ mod test {
             metadata = { name = 'rusty', tier = 'backend' }
 
             [workload]
+                replicas = 3
 
                 [workload.rust]
                     image = 'foo'
@@ -172,8 +206,8 @@ mod test {
 
                     [workload.rust.env]
                     from = [
-                        { type = 'map', name = 'foo', item = 'lol' },
-                        { type = 'res_field', name = 'rust-container', item = 'limits.cpu' }
+                        { name = 'foo', item = 'lol' },
+                        { from_field = 'res_field', name = 'rust-container', item = 'limits.cpu' }
                     ]
                     raw = [
                         { name = 'A_VALUE', item = 'bar' }
@@ -197,13 +231,12 @@ mod test {
         assert!(!env.raw.is_empty());
 
         let from = env.from.get(0).unwrap();
-        assert_eq!(from.kind.as_ref().unwrap(), "map");
         assert_eq!(from.name, "foo");
-        assert_eq!(from.item, "lol");
+        assert_eq!(from.item.to_owned().unwrap(), "lol");
 
         let raw = env.raw.get(0).unwrap();
         assert_eq!(raw.name, "A_VALUE");
-        assert_eq!(raw.item, "bar");
+        assert_eq!(raw.item.to_owned().unwrap(), "bar");
     }
 
     #[test]
@@ -214,6 +247,7 @@ mod test {
             metadata = { name = 'rusty', tier = 'backend' }
 
             [workload]
+                replicas = 3
 
                 [workload.rust]
                     image = 'foo'

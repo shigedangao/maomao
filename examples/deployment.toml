@@ -1,14 +1,17 @@
 # a deployment
 kind = "workload::deployment"
+version = "apps/v1"
 name = "rusty"
 metadata = { name = "rusty", tier = "backend" }
 
 # container name rust
 [workload]
+    replicas = 3
 
     [workload.rust]
     image = "foo"
     tag = "bar"
+    policy = "IfNotPresent"
 
         # env from
         [workload.rust.env_from]
@@ -22,9 +25,9 @@ metadata = { name = "rusty", tier = "backend" }
         # env
         [workload.rust.env]
         from = [
-            { type = "map", name = "foo", key = "lol" },
-            { type = "res_field", name = "rust-container", key = "limits.cpu" }
+            { type = "map", name = "foo", item = "lol" },
+            { type = "res_field", name = "rust-container", item = "limits.cpu" }
         ]
         raw = [
-            { name = "A_VALUE", value = "bar" }
+            { name = "A_VALUE", item = "bar" }
         ]

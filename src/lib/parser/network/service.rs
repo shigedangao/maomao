@@ -2,9 +2,9 @@ use toml::Value;
 use std::convert::From;
 use std::collections::BTreeMap;
 use crate::lib::helper::error::LError;
-use crate::lib::helper::toml::get_value_for_t;
+use crate::lib::helper::toml::{get_value_for_t, get_value_for_t_lax};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Service {
     // We don't do a check on the kind here
     // This will be done by an other module
@@ -12,11 +12,12 @@ pub struct Service {
     pub ports: Option<BTreeMap<String, Port>>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Port {
-    protocol: String,
-    port: i64,
-    target_port: i64
+    pub protocol: String,
+    pub port: i64,
+    pub target_port: i64,
+    pub node_port: Option<i32>
 }
 
 impl Service {
@@ -62,11 +63,13 @@ impl From<Value> for Port {
         let protocol = get_value_for_t::<String>(&ast, "protocol").unwrap_or(String::new());
         let port = get_value_for_t::<i64>(&ast, "port").unwrap_or(0);
         let target_port = get_value_for_t::<i64>(&ast, "target_port").unwrap_or(0);
+        let node_port = get_value_for_t_lax::<i32>(&ast, "node_port");
 
         Port {
             protocol,
             port,
-            target_port
+            target_port,
+            node_port
         }
     }
 }
@@ -148,6 +151,7 @@ mod test {
                         protocol = 'TCP'
                         port = 80
                         target_port = 90
+                        node_port = 30310
         ";
 
         let ast = template.parse::<Value>().unwrap();
@@ -162,6 +166,7 @@ mod test {
         assert_eq!(http.protocol, "TCP");
         assert_eq!(http.port, 80);
         assert_eq!(http.target_port, 90);
+        assert_eq!(http.node_port.unwrap(), 30310);
     }
 
     #[test]

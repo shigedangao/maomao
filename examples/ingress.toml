@@ -1,4 +1,5 @@
 kind = "network::ingress"
+version = "extensions/v1beta1"
 name = "rusty"
 metadata = { name = "rusty", tier = "ingress" }
 
@@ -25,6 +26,4 @@ metadata = { name = "rusty", tier = "ingress" }
             'foo.bar.com',
             'bar.com.capoo'
         ]
-        secrets = [
-            'foo-ssl-certificates'
-        ]
+        secrets = 'foo-ssl-certificates'

@@ -5,7 +5,8 @@ use std::convert::From;
 /// LError
 ///
 /// # Description
-/// A generic error representation
+/// A generic error representation for the Lib
+#[derive(Clone)]
 pub struct LError {
     pub message: String
 }

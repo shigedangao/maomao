@@ -10,30 +10,30 @@ const INGRESS_WRONG_TYPE: &str = "Unable to convert the ingress definition to a 
 const PATHS_NOT_FOUND: &str = "[paths] not found";
 const MISSING_INGRESS_RULES: &str = "Missing ingress [rules] property";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ingress {
     pub default: Option<backend::Backend>,
     pub rules: Option<Vec<IngressRule>>,
     pub tls: Option<Tls>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IngressRule {
-    host: String,
-    paths: Option<Vec<IngressHTTPPath>>
+    pub host: String,
+    pub paths: Option<Vec<IngressHTTPPath>>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IngressHTTPPath {
-    kind: String,
-    path: String,
-    backend: backend::Backend
+    pub kind: String,
+    pub path: String,
+    pub backend: backend::Backend
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Tls {
-    hosts: Option<Vec<String>>,
-    secrets: Option<Vec<String>>
+    pub hosts: Option<Vec<String>>,
+    pub secrets: Option<String>
 }
 
 impl Ingress {
@@ -139,7 +139,7 @@ impl Ingress {
             return Ok(self);
         }
 
-        let secrets = get_value_for_t::<Vec<String>>(tls_ast.unwrap(), "secrets");
+        let secrets = get_value_for_t::<String>(tls_ast.unwrap(), "secrets");
         let hosts = get_value_for_t::<Vec<String>>(tls_ast.unwrap(), "hosts");
 
         let mut tls = Tls::default();
@@ -357,9 +357,7 @@ mod test {
                 hosts = [
                     'foo.bar.com'
                 ]
-                secrets = [
-                    'foo-ssl-certificates'
-                ]
+                secrets = 'foo-ssl-certificates'
         ";
 
         let ast = template.parse::<Value>().unwrap();
@@ -372,7 +370,7 @@ mod test {
         let tls = ingress.tls.unwrap();
 
         assert_eq!(tls.hosts.unwrap().get(0).unwrap(), "foo.bar.com");
-        assert_eq!(tls.secrets.unwrap().get(0).unwrap(), "foo-ssl-certificates");
+        assert_eq!(tls.secrets.unwrap(), "foo-ssl-certificates");
     }
 
     #[test]
@@ -380,9 +378,7 @@ mod test {
         let template = "
             [ingress]
                 [ingress.tls]
-                    secrets = [
-                        'bar-ssl-certificates'
-                    ]
+                    secrets = 'bar-ssl-certificates'
         ";
 
         let ast = template.parse::<Value>().unwrap();
@@ -394,6 +390,6 @@ mod test {
         let ingress = ingress.unwrap();
         let tls = ingress.tls.unwrap();
 
-        assert_eq!(tls.secrets.unwrap().get(0).unwrap(), "bar-ssl-certificates");
+        assert_eq!(tls.secrets.unwrap(), "bar-ssl-certificates");
     }
 }
