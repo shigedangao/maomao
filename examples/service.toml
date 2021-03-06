@@ -1,6 +1,7 @@
 # a service
 # a network file could be of type network::service / network::ingress
 kind = "network::service"
+version = "v1"
 name = "rusty"
 metadata = { name = "rusty", tier = "backend" }
 

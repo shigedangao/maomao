@@ -10,7 +10,7 @@ use crate::lib::helper::error::LError;
 /// Contain the properties of the type of templates
 /// - Workload => will contains containers spec
 /// - Network => will contains networks spec
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Spec {
     pub workload: Result<Workload, LError>,
     // pub network: Result<Network, LError>,

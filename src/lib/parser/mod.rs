@@ -1,11 +1,14 @@
-mod network;
-mod workload;
+pub mod network;
+pub mod workload;
 mod spec;
 
 use std::collections::BTreeMap;
 use toml::Value;
 use super::helper::error::LError;
-use super::helper::toml::get_value_for_t;
+use super::helper::toml::{
+    get_value_for_t,
+    get_value_for_t_lax
+};
 use super::helper::conv::Convert;
 
 // Constant
@@ -17,7 +20,7 @@ const SPLIT_DELIMITER: &str = "::";
 /// Kind of toml file
 /// - Workload => workload::{kubernetes workfload} i.e workload::deployment
 /// - Network => network::{kubernetes network object} i.e: network::service
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Kind {
     Workload(String),
     Network(String),
@@ -54,13 +57,14 @@ impl Convert for Kind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
-    kind: Kind,
-    name: String,
-    metadata: BTreeMap<String, String>,
-    annotations: Option<BTreeMap<String, String>>,
-    spec: Option<spec::Spec>,
+    pub kind: Kind,
+    pub name: String,
+    pub version: Option<String>,
+    pub metadata: BTreeMap<String, String>,
+    pub annotations: Option<BTreeMap<String, String>>,
+    pub spec: Option<spec::Spec>,
 }
 
 impl Object {
@@ -79,12 +83,14 @@ impl Object {
     /// Result<Object, LError>
     fn new(ast: &Value) -> Result<Object, LError> {
         let name = get_value_for_t::<String>(ast, "name")?;
+        let version = get_value_for_t_lax::<String>(ast, "version");
         let kind = Kind::convert(ast);
         let metadata = get_value_for_t::<BTreeMap<String, String>>(ast, "metadata")?;
 
         Ok(Object {
             kind,
             name,
+            version,
             metadata,
             annotations: None,
             spec: None
@@ -153,6 +159,7 @@ mod test {
     fn expect_parse_basic_metadata() {
         let template = "
             kind = 'workload::deployment'
+            version = 'apps/v1'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
         ";
@@ -162,6 +169,7 @@ mod test {
 
         let object = object.unwrap();
         assert_eq!(object.name, "rusty");
+        assert_eq!(object.version.unwrap(), "apps/v1");
         assert_eq!(object.metadata.get("tier").unwrap(), "backend");
         assert_eq!(object.kind, super::Kind::Workload("deployment".to_owned()))
     }
@@ -170,6 +178,7 @@ mod test {
     fn expect_to_parse_annotations() {
         let template = "
             kind = 'workload::deployment'
+            version = 'apps/v1'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
 
@@ -193,6 +202,7 @@ mod test {
     fn expect_kind_to_none_metadata() {
         let template = "
             kind = 'wrongworkload'
+            version = 'apps/v1'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
         ";
@@ -219,10 +229,12 @@ mod test {
     fn expect_object_to_contains_spec() {
         let template = "
             kind = 'workload::deployment'
+            version = 'apps/v1'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
 
             [workload]
+                replicas = 3
 
                 [workload.rust]
                     image = 'foo'
@@ -241,6 +253,7 @@ mod test {
     fn expect_to_parse_service_spec() {
         let template = "
             kind = 'network::service'
+            version = 'v1'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
 
@@ -270,6 +283,7 @@ mod test {
         let template = "
             kind = 'network::service'
             name = 'rusty'
+            version = 'v1'
             metadata = { name = 'rusty', tier = 'backend' }
 
             [ingress]

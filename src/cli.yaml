@@ -1,0 +1,15 @@
+name: maomao
+version: "0.1"
+author: "Marc I. <marc.inthaamnouay@gmail.com>"
+about: Generate kubernetes conf from toml
+subcommands:
+  - generate:
+      about: Generate Kubernetes template from TOML template
+      version: "v0.1"
+      short: g
+      long: generate
+      args:
+        - path:
+            short: p
+            about: path of the toml templates
+            takes_value: true

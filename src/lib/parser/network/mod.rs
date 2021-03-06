@@ -1,6 +1,6 @@
-mod service;
-mod ingress;
-mod backend;
+pub mod service;
+pub mod ingress;
+pub mod backend;
 
 use toml::Value;
 use crate::lib::helper::error::LError;
@@ -11,7 +11,7 @@ use crate::lib::helper::error::LError;
 /// Struct use to retrieve network type of template
 /// /!\ Note: It's possible to mix an ingress & service resource at the same time
 ///     Should we preserve this possibility ?
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Network {
     pub service: Option<service::Service>,
     pub ingress: Option<ingress::Ingress>
