@@ -1,0 +1,25 @@
+# a daemonset
+kind = "workload::daemonset"
+name = "rusty"
+metadata = { name = "rusty-elasticsearch", tier = "monitoring" }
+
+# container name rust
+[workload]
+    # only schedule on node which has NoSchedule taint
+    tolerations = [
+        { key = "node-role.kubernetes.io/master", effect = "NoSchedule" }
+    ]
+
+    [workload.rust]
+    image = "foo"
+    tag = "bar"
+    policy = "IfNotPresent"
+
+        # env from
+        [workload.rust.env_from]
+        map = [
+            "default_configmap"
+        ]
+        secret = [
+            "default_secret"
+        ]

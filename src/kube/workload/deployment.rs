@@ -52,7 +52,7 @@ impl DeploymentWrapper {
 
         let workload = parser_spec.workload?;
         let spec = DeploymentSpec {
-            replicas: Some(workload.replicas),
+            replicas: workload.replicas,
             selector: common::get_label_selector_from_object(&object),
             template: pod::get_pod_template_spec(workload, metadata),
             ..Default::default()

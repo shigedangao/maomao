@@ -1,6 +1,3 @@
-/// This mod is used to define Common Struct used accross a Kubernetes Spec
-use std::collections::BTreeMap;
-use serde::{Serialize, Deserialize};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::{
     ObjectMeta,
     LabelSelector
@@ -8,20 +5,6 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::{
 use crate::lib::parser::Object;
 
 pub mod error;
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct Metadata {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    
-    pub labels: BTreeMap<String, String>,
-    pub annotations: Option<BTreeMap<String, String>>
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct Selector {
-    pub labels: BTreeMap<String, String>
-}
 
 /// Get Metadata From Object
 ///

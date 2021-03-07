@@ -1,5 +1,4 @@
 kind = "network::ingress"
-version = "extensions/v1beta1"
 name = "rusty"
 metadata = { name = "rusty", tier = "ingress" }
 

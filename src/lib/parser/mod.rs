@@ -1,8 +1,9 @@
 pub mod network;
 pub mod workload;
 mod spec;
+pub mod volume;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use toml::Value;
 use super::helper::error::LError;
 use super::helper::toml::{
@@ -25,6 +26,12 @@ pub enum Kind {
     Workload(String),
     Network(String),
     None
+}
+
+impl Default for Kind {
+    fn default() -> Self {
+        Kind::None
+    }
 }
 
 impl Convert for Kind {
@@ -57,14 +64,17 @@ impl Convert for Kind {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Object {
     pub kind: Kind,
     pub name: String,
+    // @Version field not used right now. Could be use for custom crd
     pub version: Option<String>,
+    
     pub metadata: BTreeMap<String, String>,
     pub annotations: Option<BTreeMap<String, String>>,
     pub spec: Option<spec::Spec>,
+    pub volume_claim: Option<HashMap<String, volume::VolumeClaimTemplates>>
 }
 
 impl Object {
@@ -93,7 +103,8 @@ impl Object {
             version,
             metadata,
             annotations: None,
-            spec: None
+            spec: None,
+            ..Default::default()
         })
     }
 
@@ -128,6 +139,41 @@ impl Object {
 
         self
     }
+
+    /// Set Volumes
+    ///
+    /// # Description
+    /// Set the volumes that could be used by a workload (container > spec > volume_claim_templates)
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `ast` - &Value
+    ///
+    /// # Return
+    /// Self
+    fn set_volumes(mut self, ast: &Value) -> Self {
+        let volumes_claims = ast.get("volume_claims");
+        if volumes_claims.is_none() {
+            return self;
+        }
+
+        let volumes_claims = volumes_claims.unwrap();
+        if !volumes_claims.is_table() {
+            return self;
+        }
+
+        let volumes_claims_table = volumes_claims.as_table().unwrap();
+        let computed_volumes = volume::get_volumes_from_toml_tables(volumes_claims_table);
+        if let Ok(volumes) = computed_volumes {
+            self.volume_claim = Some(volumes);
+        } else {
+            // print the error
+            // @TODO replace the println! with a print error or something else...
+            println!("{:?}", computed_volumes.unwrap_err());
+        }
+
+        self
+    }
 }
 
 /// Get Parsed Objects
@@ -146,7 +192,10 @@ pub fn get_parsed_objects(tmpl: &str) -> Result<Object, LError> {
         Err(err) => return Err(LError{ message: err.to_string() })
     };
 
-    let object = Object::new(&ast)?.set_annotations(&ast).set_spec(&ast);
+    let object = Object::new(&ast)?
+        .set_annotations(&ast)
+        .set_volumes(&ast)
+        .set_spec(&ast);
     Ok(object)
 }
 
@@ -299,5 +348,91 @@ mod test {
         let ingress = network.ingress;
         assert!(ingress.is_some());
         assert_eq!(ingress.unwrap().default.unwrap().name, "capoo");
+    }
+
+    #[test]
+    fn expect_to_parse_volumes() {
+        let template = "
+            kind = 'workload::statefulset'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+        
+            [volume_claims]
+                [volume_claims.rust]
+                    access_modes = [ 'ReadWriteOnce' ]
+                    resources_limit = [
+                        { name = 'storage', value = '1g' }
+                    ]
+                    resources_request = [
+                        { name = 'key', value = '' }
+                    ]
+        ";
+
+        let object = super::get_parsed_objects(template);
+        assert!(object.is_ok());
+
+        let object = object.unwrap();
+        assert!(object.volume_claim.is_some());
+
+        let volumes = object.volume_claim.unwrap();
+        let rust = volumes.get("rust");
+        assert!(rust.is_some());
+
+        let rust = rust.unwrap();
+        let name = rust.metadata.get("name");
+        assert_eq!(name.unwrap(), "rust");
+
+        let desc = rust.description.to_owned().unwrap();
+        assert_eq!(desc.access_modes.unwrap().get(0).unwrap(), "ReadWriteOnce");
+
+        let resources = rust.resources.to_owned().unwrap();
+        assert!(resources.limit.is_some());
+        let resource_map = resources.limit.unwrap();
+        let storage_rule = resource_map.get("storage");
+        assert!(storage_rule.is_some());
+        assert_eq!(storage_rule.unwrap(), "1g");
+    }
+
+    #[test]
+    fn expect_to_parse_statefulset() {
+        let template = "
+            kind = 'workload::statefulset'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+        
+            [volume_claims]
+                [volume_claims.rust]
+                    access_modes = []
+                    resources_limit = [
+                        { name = 'key', value = '' }
+                    ]
+          
+            # container name rust
+            [workload]
+                replicas = 3
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+                    # name must match the table of the volume_claims
+                    volume_mounts = [
+                        { name = 'rust', mount_path = 'www', read_only = true }
+                    ]
+        ";
+
+        let object = super::get_parsed_objects(template);
+        assert!(object.is_ok());
+
+        let spec = object.unwrap().spec.unwrap();
+        let workload = spec.workload.unwrap();
+
+        let rust = workload.containers.get(0).unwrap();
+        assert!(rust.volume_mounts.is_some());
+
+        let volume_mounts = rust.volume_mounts.to_owned().unwrap();
+        let item = volume_mounts.get(0).unwrap();
+        assert_eq!(item.name.to_owned().unwrap(), "rust");
+        assert_eq!(item.path.to_owned().unwrap(), "www");
+        assert_eq!(item.read_only.to_owned().unwrap(), true);
     }
 }
