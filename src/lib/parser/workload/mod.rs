@@ -1,18 +1,20 @@
-// @Deprecated
-pub mod env;
-
+use toml::Value;
 use crate::lib::helper::error::LError;
 use crate::lib::helper::toml::{get_value_for_t, get_value_for_t_lax};
-use toml::Value;
+
+pub mod env;
+pub mod toleration;
+pub mod volume;
 
 // Constant
 const WORKLOAD_NOT_EXIST: &str = "Workload does not exist. Make sure that [workload] is set on the template";
 const WORKLOAD_MALFORMATTED: &str = "Workload is malformatted. Please check that workload is above it's children";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Workload {
-    pub replicas: i32,
-    pub containers: Vec<Container>
+    pub replicas: Option<i32>,
+    pub tolerations: Option<Vec<toleration::Toleration>>,
+    pub containers: Vec<Container>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -27,7 +29,8 @@ pub struct Container {
     pub name: String,
     pub image: Image,
     pub env_from: Option<env::EnvFrom>,
-    pub env: Option<env::Env>
+    pub env: Option<env::Env>,
+    pub volume_mounts: Option<Vec<volume::VolumeMount>>,
 }
 
 impl Container {
@@ -88,6 +91,30 @@ impl Container {
 
         self
     }
+
+    /// Set Volume Mounts
+    ///
+    /// # Description
+    /// Set volume mounts field
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `ast` - &Value
+    ///
+    /// # Return
+    /// Self
+    fn set_volumes_mounts(mut self, ast: &Value) -> Self {
+        let volume = ast.get("volume_mounts");
+        if volume.is_none() {
+            return self;
+        }
+
+        if let Some(v) = volume.unwrap().as_array() {
+            self.volume_mounts = volume::VolumeMount::from_toml_array(v);
+        }
+
+        self
+    } 
 }
 
 impl Workload {
@@ -102,10 +129,11 @@ impl Workload {
     /// # Return
     /// Result<Self, LError>
     fn new(ast: &Value) -> Result<Self, LError> {
-        let replicas = get_value_for_t::<i32>(ast, "replicas")?;
+        let replicas = get_value_for_t_lax::<i32>(ast, "replicas");
         Ok(Workload {
             replicas,
-            containers: Vec::new()
+            tolerations: toleration::Toleration::get_toleration_list(&ast),
+            ..Default::default()
         })
     }
 
@@ -125,7 +153,9 @@ impl Workload {
         let mut containers = Vec::new();
         for (name, items) in specs.into_iter() {
             if items.is_table() {
-                let container = Container::new(name, items)?.set_envs(items);
+                let container = Container::new(name, items)?
+                    .set_envs(items)
+                    .set_volumes_mounts(items);
                 containers.push(container);
             }
         }
@@ -180,6 +210,7 @@ mod test {
         assert!(workload.is_ok());
 
         let workload = workload.unwrap();
+        assert_eq!(workload.replicas.unwrap(), 3);
         let rust = workload.containers.get(0);
         assert!(rust.is_some());
         
@@ -283,5 +314,37 @@ mod test {
 
         let secret = env_from.secret.get(0).unwrap();
         assert_eq!(secret, "default_secret");
+    }
+
+    #[test]
+    fn expect_to_parse_tolerations() {
+        let template = "
+            kind = 'workload::daemonset'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [workload]
+                replicas = 3
+
+                tolerations = [
+                    { key = 'node-role.kubernetes.io/master', effect = 'NoSchedule' }
+                ]
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+        ";
+
+        let ast = template.parse::<Value>().unwrap();
+        let workload = super::get_workload(&ast);
+
+        assert!(workload.is_ok());
+        let tolerations = workload.unwrap().tolerations;
+        assert!(tolerations.is_some());
+
+        let tolerations = tolerations.unwrap();
+        let first_key = tolerations.get(0).unwrap();
+        assert_eq!(first_key.key.to_owned().unwrap(), "node-role.kubernetes.io/master");
+        assert_eq!(first_key.effect.to_owned().unwrap(), "NoSchedule");
     }
 }

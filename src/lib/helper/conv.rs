@@ -58,6 +58,17 @@ impl Convert for i32 {
     }
 }
 
+// @TODO should we return Result instead of Self only to enforce typing ?
+impl Convert for bool {
+    fn convert(v: &Value) -> Self {
+        if v.is_bool() {
+            return v.as_bool().unwrap();
+        }
+
+        false
+    }
+}
+
 
 impl Convert for BTreeMap<String, String> {
     fn convert(v: &Value) -> Self {

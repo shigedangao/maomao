@@ -2,12 +2,16 @@ use std::convert::From;
 use k8s_openapi::api::core::v1::{
     PodTemplateSpec,
     PodSpec,
-    Container
+    Container,
+    Toleration,
+    VolumeMount
 };
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use crate::lib::parser::workload::{
     Workload,
-    Container as ParserContainer
+    Container as ParserContainer,
+    toleration::Toleration as ParserToleration,
+    volume::VolumeMount as ParserVolumeMount
 };
 
 mod env;
@@ -34,7 +38,10 @@ pub fn get_pod_template_spec(workload: Workload, metadata: ObjectMeta) -> PodTem
         spec: None
     };
 
-    let wrapper = PodSpecWrapper::new().set_containers(workload.containers);
+    let wrapper = PodSpecWrapper::new()
+        .set_containers(workload.containers)
+        .set_tolerations(workload.tolerations);
+
     template.spec = Some(wrapper.spec);
     
     template
@@ -71,10 +78,37 @@ impl PodSpecWrapper {
 
         self
     }
+
+    /// Set Tolerations
+    ///
+    /// # Description
+    /// Set the tolerations to the PodSpec
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `parser_tolerations` - Vec<ParserToleration>
+    ///
+    /// # Return
+    /// Self
+    fn set_tolerations(mut self, parser_tolerations: Option<Vec<ParserToleration>>) -> Self {
+        if parser_tolerations.is_none() {
+            return self;
+        }
+
+        let tolerations = parser_tolerations.unwrap()
+            .into_iter()
+            .map(|t | Toleration::from(t))
+            .collect::<Vec<Toleration>>();
+
+        self.spec.tolerations = Some(tolerations);
+
+        self
+    }
 }
 
+// @Question: Should we make this more flexible ?
 impl From<ParserContainer> for Container {
-    fn from(c: ParserContainer) -> Container {
+    fn from(c: ParserContainer) -> Self {
         let mut container = Container {
             name: c.name,
             image: Some(format!("{}:{}", c.image.repo, c.image.tag)),
@@ -94,6 +128,38 @@ impl From<ParserContainer> for Container {
             container.env_from = Some(env_from::get_env_source_from_envfrom(env));
         }
 
+        if let Some(volume_mounts) = c.volume_mounts {
+            let mounts = volume_mounts
+                .into_iter()
+                .map(|m| VolumeMount::from(m))
+                .collect::<Vec<VolumeMount>>();
+
+            container.volume_mounts = Some(mounts);
+        }
+
         container
+    }
+}
+
+impl From<ParserToleration> for Toleration {
+    fn from(t: ParserToleration) -> Self {
+        Toleration {
+            effect: t.effect,
+            key: t.key,
+            operator: t.operator,
+            toleration_seconds: t.toleration_seconds,
+            value: t.value
+        }
+    }
+}
+
+impl From<ParserVolumeMount> for VolumeMount {
+    fn from(t: ParserVolumeMount) -> Self {
+        VolumeMount {
+            name: t.name.unwrap_or("".to_owned()),
+            mount_path: t.path.unwrap_or("".to_owned()),
+            read_only: t.read_only,
+            ..Default::default()
+        }
     }
 }

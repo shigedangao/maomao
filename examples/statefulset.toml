@@ -1,16 +1,31 @@
-# a deployment
-kind = "workload::deployment"
+# a statefulset
+kind = "workload::statefulset"
 name = "rusty"
 metadata = { name = "rusty", tier = "backend" }
 
+[volume_claims]
+    [volume_claims.rust]
+        access_modes = []
+        data_source = { name = "new-snapshot-test", kind = "VolumeSnapshot" }
+        resources_limit = [
+            { key_name = "key", value = "" }
+        ]
+        resource_request = [
+            { key_name = "key", value = "" }
+        ]
+  
 # container name rust
 [workload]
     replicas = 3
-
+          
     [workload.rust]
     image = "foo"
     tag = "bar"
     policy = "IfNotPresent"
+    # name must match the table of the volume_claims
+    volume_mounts = [
+        { name = "rust", mount_path = "" }
+    ]
 
         # env from
         [workload.rust.env_from]
