@@ -1,4 +1,3 @@
-use std::collections::{HashMap, BTreeMap};
 use k8s_openapi::api::core::v1::{
     PersistentVolumeClaim,
     PersistentVolumeClaimSpec,
@@ -6,14 +5,27 @@ use k8s_openapi::api::core::v1::{
     ResourceRequirements
 };
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use k8s_openapi::apimachinery::pkg::api::resource::Quantity;
-use crate::lib::parser;
+use crate::lib::{
+    parser,
+    parser::volume::DataSource
+};
+use crate::kube::helper;
 
 struct PvcWrapper {
     pvc: PersistentVolumeClaim
 }
 
 impl PvcWrapper {
+    /// New
+    ///
+    /// # Description
+    /// Create a new PvcWrapper
+    ///
+    /// # Arguments
+    /// * `parser_pvc` - &parser::volume::VolumeClaimTemplates
+    ///
+    /// # Return
+    /// Self
     fn new(parser_pvc: &parser::volume::VolumeClaimTemplates) -> Self {
         let pvc = PersistentVolumeClaim {
             metadata: ObjectMeta { annotations: Some(parser_pvc.metadata.to_owned()), ..Default::default() },
@@ -25,6 +37,17 @@ impl PvcWrapper {
         }
     }
 
+    /// Set Spec
+    ///
+    /// # Description
+    /// Set the spec of a PersistentVolumeClaim
+    ///
+    /// # Arguments
+    /// * `mut self` - self
+    /// * `parser_pvc` - &parser::volume::VolumeClaimTemplates
+    ///
+    /// # Return
+    /// Self
     fn set_spec(mut self, parser_pvc: &parser::volume::VolumeClaimTemplates) -> Self {
         let mut spec = PersistentVolumeClaimSpec{
             ..Default::default()
@@ -40,8 +63,8 @@ impl PvcWrapper {
 
         if let Some(resources) = parser_pvc.resources.to_owned() {
             let req = ResourceRequirements {
-                limits: get_btree_quantity_from_hashmap(resources.limit),
-                requests: get_btree_quantity_from_hashmap(resources.request)
+                limits: helper::get_btree_quantity_from_hashmap(resources.limit),
+                requests: helper::get_btree_quantity_from_hashmap(resources.request)
             };
 
             spec.resources = Some(req);
@@ -52,40 +75,36 @@ impl PvcWrapper {
     }
 }
 
-
-fn get_btree_quantity_from_hashmap(map: Option<HashMap<String, String>>) -> Option<BTreeMap<String, Quantity>> {
-    if let Some(m) = map {
-        let converted = m.into_iter()
-            .map(|(k, v)| (k, Quantity(v)))
-            .collect();
-
-        return Some(converted);
+/// Get Typed Local Object Reference
+///
+/// # Description
+/// Create a TypedLocalObjectRefererence from a HashMap which represent a set of field & value
+/// i.e: { kind = "foo", name = "bar" }
+///
+/// # Arguments
+/// * `m` - Option<DataSource>
+///
+/// # Return
+/// Option<TypedLocalObjectReference>
+fn get_typed_local_object_reference(m: Option<DataSource>) -> Option<TypedLocalObjectReference> {
+    if let Some(data_source) = m {
+        return Some(TypedLocalObjectReference {
+            api_group: None,
+            kind: data_source.kind.unwrap_or("".to_owned()),
+            name: data_source.name.unwrap_or("".to_owned())
+        });
     }
 
     None
 }
 
-fn get_typed_local_object_reference(m: Option<HashMap<String, String>>) -> Option<TypedLocalObjectReference> {
-    if m.is_none() {
-        return None;
-    }
-    
-    let m = m.unwrap();
-    let kind = m.get("kind");
-    let name = m.get("name");
-
-    if kind.is_none() || name.is_none() {
-        return None;
-    }
-
-    Some(TypedLocalObjectReference {
-        api_group: None,
-        kind: kind.unwrap().to_owned(),
-        name: name.unwrap().to_owned()
-    })
-}
-
-
+/// Get Pvc List
+///
+/// # Arguments
+/// * `object` - &parser::Object
+///
+/// # Return
+/// Option<Vec<PersistentVolumeClaim>>
 pub fn get_pvc_list(object: &parser::Object) -> Option<Vec<PersistentVolumeClaim>> {
     if object.volume_claim.is_none() {
         return None;

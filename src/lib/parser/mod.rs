@@ -352,7 +352,7 @@ mod test {
 
     #[test]
     fn expect_to_parse_volumes() {
-        let template = "
+        let template = r#"
             kind = 'workload::statefulset'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
@@ -360,13 +360,14 @@ mod test {
             [volume_claims]
                 [volume_claims.rust]
                     access_modes = [ 'ReadWriteOnce' ]
+                    data_source = { name = 'kind', kind = 'VolumeSnapshot' }
                     resources_limit = [
-                        { name = 'storage', value = '1g' }
+                        { key_name = 'storage', value = '1g' }
                     ]
                     resources_request = [
-                        { name = 'key', value = '' }
+                        { key_name = 'key', value = '' }
                     ]
-        ";
+        "#;
 
         let object = super::get_parsed_objects(template);
         assert!(object.is_ok());
@@ -384,6 +385,12 @@ mod test {
 
         let desc = rust.description.to_owned().unwrap();
         assert_eq!(desc.access_modes.unwrap().get(0).unwrap(), "ReadWriteOnce");
+
+        let datasource = desc.data_source;
+        assert!(datasource.is_some());
+        let datasource = datasource.unwrap();
+        assert_eq!(datasource.name.unwrap(), "kind");
+        assert_eq!(datasource.kind.unwrap(), "VolumeSnapshot");
 
         let resources = rust.resources.to_owned().unwrap();
         assert!(resources.limit.is_some());

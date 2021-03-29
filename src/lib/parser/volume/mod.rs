@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
+use serde::Deserialize;
 use toml::Value;
 use toml::map::Map;
 use crate::lib::helper::toml::get_value_for_t_lax;
+use crate::lib::helper::conv::Convert;
 use crate::lib::helper::error::LError;
 
 #[derive(Debug, Clone, Default)]
@@ -16,7 +18,7 @@ pub struct VolumeClaimTemplates {
 pub struct VolumeMetadataInfo {
     pub access_modes: Option<Vec<String>>,
     pub class_name: Option<String>,
-    pub data_source: Option<HashMap<String, String>>,
+    pub data_source: Option<DataSource>,
     pub mode: Option<String>,
     pub name: Option<String>
 }
@@ -25,6 +27,24 @@ pub struct VolumeMetadataInfo {
 pub struct VolumeResources {
     pub limit: Option<HashMap<String, String>>,
     pub request: Option<HashMap<String, String>>
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct DataSource {
+    pub name: Option<String>,
+    pub kind: Option<String>
+}
+
+impl Convert for DataSource {
+    fn convert(v: &Value) -> Self {
+        let name = get_value_for_t_lax::<String>(v, "name");
+        let kind = get_value_for_t_lax::<String>(v, "kind");
+
+        DataSource {
+            name,
+            kind
+        }
+    }
 }
 
 impl VolumeClaimTemplates {
@@ -67,7 +87,7 @@ impl VolumeClaimTemplates {
         let class_name = get_value_for_t_lax::<String>(&ast, "class_name");
         let name = get_value_for_t_lax::<String>(&ast, "name");
         let mode = get_value_for_t_lax::<String>(&ast, "mode");
-        let data_source = get_hmap_from_vec_toml(&ast, "data_source");
+        let data_source = get_value_for_t_lax::<DataSource>(&ast, "data_source");
 
         let desc = VolumeMetadataInfo {
             access_modes,
@@ -132,7 +152,7 @@ fn get_hmap_from_vec_toml(ast: &Value, key: &str) -> Option<HashMap<String, Stri
     let map: HashMap<String, String> = extracted
         .into_iter()
         .map(|v| {
-            let name = get_value_for_t_lax::<String>(v, "name").unwrap_or("".to_owned());
+            let name = get_value_for_t_lax::<String>(v, "key_name").unwrap_or("".to_owned());
             let value = get_value_for_t_lax::<String>(v, "value").unwrap_or("".to_owned());
 
             (name, value)

@@ -96,15 +96,12 @@ mod tests {
             [volume_claims]
                 [volume_claims.rust]
                     access_modes = []
-                    data_source = [
-                        { name = "kind", value = "VolumeSnapshot" },
-                        { name = "name", value = "source" }
-                    ]
+                    data_source = { name = "new-snapshot-test", kind = "VolumeSnapshot" }
                     resources_limit = [
-                        { name = "key", value = "" }
+                        { key_name = "key", value = "" }
                     ]
                     resource_request = [
-                        { name = "key", value = "" }
+                        { key_name = "key", value = "" }
                     ]
           
             # container name rust
@@ -117,8 +114,8 @@ mod tests {
                 policy = "IfNotPresent"
                 # name must match the table of the volume_claims
                 volume_mounts = [
-                    { name = "rust", mount_path = "" }
-                ]        
+                    { name = "rust", mount_path = "/" }
+                ]
         "#;
 
         let object = get_parsed_objects(template).unwrap();
@@ -135,6 +132,50 @@ mod tests {
         let datasource = rust_spec.data_source.unwrap();
 
         assert_eq!(datasource.kind, "VolumeSnapshot");
-        assert_eq!(datasource.name, "source");
+        assert_eq!(datasource.name, "new-snapshot-test");
+
+        let template = spec.template.spec.unwrap();
+        let container = template.containers.get(0).unwrap();
+        assert!(container.volume_mounts.is_some());
+
+        let rust = container.volume_mounts.as_ref().unwrap().get(0);
+        assert!(rust.is_some());
+
+        let rust = rust.unwrap();
+        assert_eq!(rust.mount_path, "/");
+        assert_eq!(rust.name, "rust");
+    }
+
+    #[test]
+    fn expect_to_create_statefulset_without_volume_mount() {
+        let template = r#"
+            kind = "workload::statefulset"
+            name = "rusty"
+            metadata = { name = "rusty", tier = "backend" }
+        
+            [volume_claims]
+                [volume_claims.rust]
+                    access_modes = []
+                    data_source = { name = "new-snapshot-test", kind = "VolumeSnapshot" }
+                    resources_limit = [
+                        { key_name = "key", value = "" }
+                    ]
+                    resource_request = [
+                        { key_name = "key", value = "" }
+                    ]
+          
+            # container name rust
+            [workload]
+                replicas = 3
+
+                [workload.rust]
+                image = "foo"
+                tag = "bar"
+                policy = "IfNotPresent"
+        "#;
+
+        let object = get_parsed_objects(template).unwrap();
+        let statefulset = super::get_statefulset_from_object(&object);
+        assert!(statefulset.is_ok());
     }
 }

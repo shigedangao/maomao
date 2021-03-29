@@ -6,15 +6,12 @@ metadata = { name = "rusty", tier = "backend" }
 [volume_claims]
     [volume_claims.rust]
         access_modes = []
-        data_sources = [
-            { name = "kind", value = "VolumeSnapshot" },
-            { name = "name", value = "source" }
-        ]
+        data_source = { name = "new-snapshot-test", kind = "VolumeSnapshot" }
         resources_limit = [
-            { name = "key", value = "" }
+            { key_name = "key", value = "" }
         ]
         resource_request = [
-            { name = "key", value = "" }
+            { key_name = "key", value = "" }
         ]
   
 # container name rust
