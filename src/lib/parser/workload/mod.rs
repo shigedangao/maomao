@@ -1,14 +1,16 @@
 use toml::Value;
-use crate::lib::helper::error::LError;
-use crate::lib::helper::toml::{get_value_for_t, get_value_for_t_lax};
+use crate::lib::helper::error::{
+    LError,
+    workload::Error
+};
+use crate::lib::helper::toml::{
+    get_value_for_t,
+    get_value_for_t_lax
+};
 
 pub mod env;
 pub mod toleration;
 pub mod volume;
-
-// Constant
-const WORKLOAD_NOT_EXIST: &str = "Workload does not exist. Make sure that [workload] is set on the template";
-const WORKLOAD_MALFORMATTED: &str = "Workload is malformatted. Please check that workload is above it's children";
 
 #[derive(Debug, Clone, Default)]
 pub struct Workload {
@@ -146,9 +148,7 @@ impl Workload {
     /// # Return
     /// Result<Self, LError>
     fn set_spec(mut self, ast: &Value) -> Result<Self, LError> {
-        let specs = ast.as_table().ok_or_else(|| LError {
-            message: WORKLOAD_MALFORMATTED.to_owned()
-        })?;
+        let specs = ast.as_table().ok_or_else(|| LError::from(Error::WorkloadMalformatted))?;
 
         let mut containers = Vec::new();
         for (name, items) in specs.into_iter() {
@@ -177,9 +177,8 @@ impl Workload {
 /// # Result
 /// Result<Workload, LError>
 pub fn get_workload(ast: &Value) -> Result<Workload, LError> {
-    let workload = ast.get("workload").ok_or_else(|| LError {
-        message: WORKLOAD_NOT_EXIST.to_owned()
-    })?;
+    let workload = ast.get("workload")
+        .ok_or_else(|| LError::from(Error::WorkloadNotExist))?;
 
     Workload::new(workload)?.set_spec(workload)
 }
