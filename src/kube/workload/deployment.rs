@@ -4,7 +4,10 @@ use k8s_openapi::api::apps::v1::{
 };
 use crate::lib::parser::Object;
 use crate::kube::common;
-use crate::kube::helper::error::KubeError;
+use crate::kube::helper::error::{
+    KubeError,
+    common::Error
+};
 use super::container::pod;
 
 struct DeploymentWrapper {
@@ -48,7 +51,7 @@ impl DeploymentWrapper {
     fn set_spec(mut self, object: &Object) -> Result<Self, KubeError> {
         let metadata = common::get_workload_metadata_from_object(&object);
         let parser_spec = object.spec.to_owned()
-            .ok_or_else(|| KubeError { message: common::error::MISSING_SPEC.to_owned() })?;
+            .ok_or_else(|| KubeError::from(Error::MissingSpec))?;
 
         let workload = parser_spec.workload?;
         let spec = DeploymentSpec {

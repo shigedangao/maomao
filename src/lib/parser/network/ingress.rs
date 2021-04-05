@@ -1,14 +1,12 @@
 use toml::Value;
 use std::convert::From;
-use crate::lib::helper::error::LError;
+use crate::lib::helper::error::{
+    LError,
+    network::Error
+};
 use crate::lib::helper::toml::{get_value_for_t, get_value_for_t_from};
 use crate::lib::helper::conv::Convert;
 use super::backend;
-
-// Constant error
-const INGRESS_WRONG_TYPE: &str = "Unable to convert the ingress definition to a map";
-const PATHS_NOT_FOUND: &str = "[paths] not found";
-const MISSING_INGRESS_RULES: &str = "Missing ingress [rules] property";
 
 #[derive(Debug, Clone)]
 pub struct Ingress {
@@ -67,9 +65,9 @@ impl Ingress {
         }
 
         let rules = rules
-            .ok_or_else(|| LError { message: MISSING_INGRESS_RULES.to_owned() })?
+            .ok_or_else(|| LError::from(Error::MissingRules))?
             .as_table()
-            .ok_or_else(|| LError { message: INGRESS_WRONG_TYPE.to_owned() })?;
+            .ok_or_else(|| LError::from(Error::IngressWrongType))?;
 
         let mut ingress_rules = Vec::new();
         for (_, rules) in rules.into_iter() {
@@ -77,7 +75,7 @@ impl Ingress {
                 .unwrap_or("".to_owned());
 
             let paths = rules.get("paths")
-                .ok_or_else(|| LError { message: PATHS_NOT_FOUND.to_owned() })?;
+                .ok_or_else(|| LError::from(Error::PathNotFound))?;
 
             if paths.is_table() {
                 ingress_rules.push(IngressRule {

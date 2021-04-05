@@ -4,8 +4,6 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::{
 };
 use crate::lib::parser::Object;
 
-pub mod error;
-
 /// Get Metadata From Object
 ///
 /// # Description

@@ -49,3 +49,31 @@ impl From<SerdeYamlError> for KubeError {
         }
     }
 }
+
+pub mod common {
+    use std::fmt;
+    use std::convert::From;
+    
+    #[derive(Debug)]
+    pub enum Error {
+        MissingSpec
+    }
+
+    impl fmt::Display for Error {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                Error::MissingSpec => write!(f, "Spec is missing from parser object body") 
+            }
+        }
+    }
+
+    impl std::error::Error for Error {}
+
+    impl From<Error> for super::KubeError {
+        fn from(err: Error) -> Self {
+            super::KubeError {
+                message: err.to_string()
+            }
+        }
+    }
+}
