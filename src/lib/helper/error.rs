@@ -105,3 +105,31 @@ pub mod workload {
         }
     }
 }
+
+pub mod crd {
+    use std::fmt;
+    use std::convert::From;
+
+    #[derive(Debug)]
+    pub enum Error {
+        SpecNotFound
+    }
+
+    impl fmt::Display for Error {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                Error::SpecNotFound => write!(f, "[Spec] could not be founded")
+            }
+        }
+    }
+
+    impl std::error::Error for Error {}
+
+    impl From<Error> for super::LError {
+        fn from(err: Error) -> Self {
+            super::LError {
+                message: err.to_string()
+            }
+        }
+    }
+}
