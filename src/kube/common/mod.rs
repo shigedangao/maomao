@@ -23,6 +23,7 @@ pub fn get_metadata_from_object(object: &Object) -> ObjectMeta {
     ObjectMeta {
         annotations: object.annotations.to_owned(),
         labels: Some(object.metadata.to_owned()),
+        name: object.metadata.get("name").cloned(),
         ..Default::default()
     }
 }

@@ -1,0 +1,7 @@
+kind = "custom::<kind>"
+version = "<kind_version>"
+metadata = { foo = "bar" }
+
+[spec]
+    # below define whatever parameters u need
+    

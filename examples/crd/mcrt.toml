@@ -1,0 +1,9 @@
+kind = "custom::ManagedCertificate"
+version = "networking.gke.io/v1"
+metadata = { name = "rusty-certificate" }
+
+[spec]
+    domains = [
+        "rusty-dev.co.kr",
+        "rusty-dyn.co.kr"
+    ]
