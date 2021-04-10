@@ -1,20 +1,15 @@
 ## Maomao
 
-Just trying to convert TOML to Kubernetes YAML (in WiP)
+Just trying to convert TOML to Kubernetes YAML (in WIP)
 
 ## Command
 
 ```bash
-cargo run generate -p <path>
+cargo run generate -p <path> -o [OPTIONAl] <output_path>
 ```
 
-## Custom CRD (reflexion)
+## Custom CRD
 
-After implementing some workload, translating from TOML to YAML is quite intensive, as it required the following (maybe architecture is too complex ?)
--> toml file -> Workload struct -> k8s_openapi struct -> YAML
+Custom CRD are just converting a TOML [spec] table to YAML w/o any logics. Thus there can be some shortcomings. An example could be argo workflow which support double hyphens. This syntax is not officially supported by the YAML spec. Hence, we can't support this feature.
 
-Custom CRD does not need to use k8s_openapi. Just convert the toml::Values to Yaml (if it implement the serialize...)
-- If it is, then just create a TOML which will define the rules of the toml format such that the parser or checker lib will implement a visitor checking if the TOMl respect the rules
-
-It would be like so -> toml file -> (Rules files ?) -> YAML
-It should be possible to translate directly toml to yaml the toml library implement the Deserialize trait... need to test
+See examples/crd folder to see how it looks like.
