@@ -1,7 +1,10 @@
 use k8s_openapi::api::networking::v1::Ingress;
 use crate::lib::parser::Object;
 use crate::kube::common;
-use crate::kube::helper::error::KubeError;
+use crate::kube::helper::error::{
+    KubeError,
+    common::Error
+};
 
 mod spec;
 
@@ -43,7 +46,7 @@ impl IngressWrapper {
     /// Result<Self, KubeError>
     fn set_spec(mut self, object: &Object) -> Result<Self, KubeError>{
         if let None = object.spec {
-            return Err(KubeError { message: common::error::MISSING_SPEC.to_owned() });
+            return Err(KubeError::from(Error::MissingSpec));
         }
 
         let s = object.spec.to_owned().unwrap();

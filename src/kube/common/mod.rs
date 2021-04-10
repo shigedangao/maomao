@@ -4,8 +4,6 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::{
 };
 use crate::lib::parser::Object;
 
-pub mod error;
-
 /// Get Metadata From Object
 ///
 /// # Description
@@ -25,6 +23,7 @@ pub fn get_metadata_from_object(object: &Object) -> ObjectMeta {
     ObjectMeta {
         annotations: object.annotations.to_owned(),
         labels: Some(object.metadata.to_owned()),
+        name: object.metadata.get("name").cloned(),
         ..Default::default()
     }
 }

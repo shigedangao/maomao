@@ -2,19 +2,32 @@ use std::fmt;
 use std::convert::From;
 use std::error::Error;
 use std::io::Error as IOError;
-use crate::lib::helper::error::LError;
 
-// Constant errors
-const IO: &str = "An error has been encountered with I/O operations";
-const LIB: &str = "An error occurred with the parser library";
+#[derive(Debug)]
+pub enum TypeError {
+    Io(String),
+    Lib(String),
+    MissingArg(String)
+}
+
+impl std::fmt::Display for TypeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TypeError::Io(msg) => write!(f, "An error occurred during I/O Operation: {}", msg),
+            TypeError::Lib(msg) => write!(f, "An error occured with the parser library: {}", msg),
+            TypeError::MissingArg(msg) => write!(f, "Argument not found: {}", msg)
+        }
+    }
+}
+
+impl Error for TypeError {}
 
 /// CError
 ///
 /// # Description
 /// A generic error representation for the CLI
 pub struct CError {
-    pub message: String,
-    pub details: String
+    pub message: String
 }
 
 impl fmt::Display for CError {
@@ -27,9 +40,8 @@ impl fmt::Debug for CError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "CLI encountered an issue: {}, trace: {}",
+            "CLI encountered an issue: {}",
             self.message,
-            self.details
         )
     }
 }
@@ -40,20 +52,18 @@ impl Error for CError {
     }    
 }
 
-impl From<IOError> for CError {
-    fn from(err: IOError) -> Self {
+impl From<TypeError> for CError {
+    fn from(err: TypeError) -> Self {
         CError {
-            message: IO.to_owned(),
-            details: err.to_string()
+            message: err.to_string()
         }
     }
 }
 
-impl From<LError> for CError {
-    fn from(err: LError) -> Self {
+impl From<IOError> for CError {
+    fn from(err: IOError) -> Self {
         CError {
-            message: LIB.to_owned(),
-            details: err.message
+            message: err.to_string()
         }
     }
 }

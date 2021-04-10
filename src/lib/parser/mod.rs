@@ -1,7 +1,9 @@
 pub mod network;
 pub mod workload;
-mod spec;
 pub mod volume;
+
+mod crd;
+mod spec;
 
 use std::collections::{BTreeMap, HashMap};
 use toml::Value;
@@ -25,6 +27,7 @@ const SPLIT_DELIMITER: &str = "::";
 pub enum Kind {
     Workload(String),
     Network(String),
+    Custom(String),
     None
 }
 
@@ -59,6 +62,7 @@ impl Convert for Kind {
         match t.unwrap().to_lowercase().as_str() {
             "workload" => Kind::Workload(arg),
             "network" => Kind::Network(arg),
+            "custom" => Kind::Custom(arg),
             _ => Kind::None
         }
     }
@@ -67,13 +71,13 @@ impl Convert for Kind {
 #[derive(Debug, Clone, Default)]
 pub struct Object {
     pub kind: Kind,
-    pub name: String,
-    // @Version field not used right now. Could be use for custom crd
+    pub name: Option<String>,
     pub version: Option<String>,
     
     pub metadata: BTreeMap<String, String>,
     pub annotations: Option<BTreeMap<String, String>>,
     pub spec: Option<spec::Spec>,
+
     pub volume_claim: Option<HashMap<String, volume::VolumeClaimTemplates>>
 }
 
@@ -92,7 +96,7 @@ impl Object {
     /// # Return
     /// Result<Object, LError>
     fn new(ast: &Value) -> Result<Object, LError> {
-        let name = get_value_for_t::<String>(ast, "name")?;
+        let name = get_value_for_t_lax::<String>(ast, "name");
         let version = get_value_for_t_lax::<String>(ast, "version");
         let kind = Kind::convert(ast);
         let metadata = get_value_for_t::<BTreeMap<String, String>>(ast, "metadata")?;
@@ -217,7 +221,7 @@ mod test {
         assert!(object.is_ok());
 
         let object = object.unwrap();
-        assert_eq!(object.name, "rusty");
+        assert_eq!(object.name.unwrap(), "rusty");
         assert_eq!(object.version.unwrap(), "apps/v1");
         assert_eq!(object.metadata.get("tier").unwrap(), "backend");
         assert_eq!(object.kind, super::Kind::Workload("deployment".to_owned()))
@@ -264,14 +268,14 @@ mod test {
     }
 
     #[test]
-    fn exepct_to_return_err_missing_name_metadata() {
+    fn exepct_to_not_return_err_missing_name_metadata() {
         let template = "
             kind = 'workload::deployment'
             metadata = { name = 'rusty', tier = 'backend' }
         ";
 
         let object = super::get_parsed_objects(template);
-        assert!(object.is_err());
+        assert!(object.is_ok());
     }
 
     #[test]

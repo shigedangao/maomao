@@ -1,0 +1,44 @@
+# Note that argo workflow is using specials characters to run workflow sequentially
+# Which is not supported by default in the YAML spec. Hence this feature couldn't be supported
+# i.e:
+#
+# steps:
+# - - name: foo
+#     ...
+# - - name: bar
+kind = "custom::Workflow"
+version = "argoproj.io/v1alpha1"
+metadata = { generatedName = "steps-" }
+
+[spec]
+    entrypoint = "hello"
+    [[spec.templates]]
+        # parameter such as name are given in the toml table
+        name = "hello"
+        [[spec.templates.steps]]
+            name = "hello world"
+            template = "whalesay"
+            
+            [spec.templates.steps.arguments]
+                parameters = [
+                    { name = "message", value = "hello1" }
+                ]
+
+        [[spec.templates.steps]]
+            name = "hello bar"
+            template = "whalesay"
+            [spec.templates.steps.arguments]
+                parameters = [
+                    { name = "message", value = "hello1" }
+                ]
+
+    [[spec.templates]]
+        name = "whalesay"
+        [spec.templates.inputs]
+            parameters = [
+                { name = "message" }
+            ]
+        [spec.templates.container]
+            image = "docker/whalesay"
+            command = ["cowsay"]
+            args = ["{{inputs.parameters.message}}"]

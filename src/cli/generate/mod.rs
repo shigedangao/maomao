@@ -1,9 +1,15 @@
 use clap::ArgMatches;
-use super::ARG_NOT_FOUND;
-use crate::cli::helper::error::CError;
+use crate::cli::helper::error::{
+    CError,
+    TypeError
+};
 use crate::cli::helper::io;
 use crate::lib::parser;
 use crate::kube;
+
+// Constant
+const ARG_PATH: &str = "path";
+const ARG_OUTPUT: &str = "output";
 
 /// Run
 ///
@@ -16,17 +22,31 @@ use crate::kube;
 /// # Return
 /// Result<(), CError>
 pub fn run(args: &ArgMatches) -> Result<(), CError> {
-    let path = args.value_of("path")
-        .ok_or_else(|| CError { message: format!("{}{}", "path", ARG_NOT_FOUND), details: String::new()})?;
+    let path = args.value_of(ARG_PATH)
+        .ok_or_else(|| CError::from(TypeError::MissingArg(ARG_PATH.to_owned())))?;
+
+    let output = args.value_of(ARG_OUTPUT);
 
     let templates = io::read_files_to_string(path)?;
-    let mut objects = Vec::new();
+    let mut generated_yaml = Vec::new();
+
     for tmpl in templates {
-        let res = parser::get_parsed_objects(tmpl.as_str())?;
-        objects.push(res);
+        let res = parser::get_parsed_objects(tmpl.as_str())
+            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+
+        let yaml = kube::generate_yaml(res)
+            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+
+        generated_yaml.push(yaml);
     }
 
-    kube::generate_yaml(objects);
+    let stitched_yaml = generated_yaml.join("");
+    if let Some(output_path) = output {
+        return io::write_file(output_path, &stitched_yaml);
+    }
+
+    // Otherwise print on the console
+    println!("{}", stitched_yaml);
 
     Ok(())
 }

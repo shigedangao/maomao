@@ -13,3 +13,8 @@ subcommands:
             short: p
             about: path of the toml templates
             takes_value: true
+        - output:
+            short: o
+            about: destination folder
+            required: false
+            takes_value: true

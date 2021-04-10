@@ -1,7 +1,10 @@
 use k8s_openapi::api::core::v1::Service;
 use crate::kube::common;
 use crate::lib::parser::Object;
-use crate::kube::helper::error::KubeError;
+use crate::kube::helper::error::{
+    KubeError,
+    common::Error
+};
 
 mod spec;
 
@@ -47,7 +50,7 @@ impl ServiceWrapper {
         let network = object
             .spec
             .to_owned()
-            .ok_or_else(|| KubeError { message: common::error::MISSING_SPEC.to_owned() })?
+            .ok_or_else(|| KubeError::from(Error::MissingSpec))?
             .network?;
 
         if let Some(service) = network.service {
