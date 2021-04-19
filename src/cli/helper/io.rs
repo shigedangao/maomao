@@ -18,8 +18,9 @@ const NO_YAML: &str = "Path is not a .yaml file";
 ///
 /// # Return
 /// * `Result<HashMap<String, String>, CError>`
-pub fn read_files_to_string(path: &str) -> Result<HashMap<String, String>, CError> {
+pub fn read_files_to_string(path: &str) -> Result<(HashMap<String, String>, Option<String>), CError> {
     let mut templates = HashMap::new();
+    let mut variables = None;
     let dir = fs::read_dir(path)?;
 
     for entry in dir {
@@ -28,13 +29,18 @@ pub fn read_files_to_string(path: &str) -> Result<HashMap<String, String>, CErro
         let path = entry.path();
         if path.is_file() {
             if let Some(name) = path.clone().file_stem().and_then(|u| u.to_str()) {
-                let tmpl = fs::read_to_string(path)?;
-                templates.insert(name.to_owned(), tmpl);
+                if name != "_vars" {
+                    let tmpl = fs::read_to_string(path)?;
+                    templates.insert(name.to_owned(), tmpl);
+                } else {
+                    let vars = fs::read_to_string(path)?;
+                    variables = Some(vars);
+                }
             }
         }
     }
 
-    Ok(templates)
+    Ok((templates, variables))
 }
 
 /// Write File

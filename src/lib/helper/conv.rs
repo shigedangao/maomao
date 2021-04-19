@@ -40,6 +40,10 @@ impl Convert for i64 {
                 .unwrap();
         }
 
+        if let Some(number) = v.as_str() {
+            return number.parse::<i64>().unwrap_or(0);
+        }
+
         0
     }
 }
@@ -52,6 +56,10 @@ impl Convert for i32 {
                 .as_integer()
                 .unwrap()
                 as i32;
+        }
+
+        if let Some(number) = v.as_str() {
+            return number.parse::<i32>().unwrap_or(0);
         }
 
         0

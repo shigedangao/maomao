@@ -5,18 +5,16 @@ metadata = { name = "rusty", tier = "backend" }
 
 # container name rust
 [workload]
-    replicas = 3
+    replicas = "$[replicas]"
 
     [workload.rust]
-    image = "foo"
+    image = "$[image_provider]/$[image_name]"
     tag = "bar"
     policy = "IfNotPresent"
 
         # env from
         [workload.rust.env_from]
-        map = [
-            "default_configmap"
-        ]
+        map = "$[default::typed]"
         secret = [
             "default_secret"
         ]

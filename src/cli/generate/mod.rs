@@ -5,7 +5,10 @@ use crate::cli::helper::error::{
     TypeError
 };
 use crate::cli::helper::io;
-use crate::lib::parser;
+use crate::lib::{
+    parser,
+    vars
+};
 use crate::kube;
 
 // Constant
@@ -30,11 +33,14 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     let output = args.value_of(ARG_OUTPUT);
     let merge = args.is_present(ARG_MERGE);
 
-    let templates = io::read_files_to_string(path)?;
+    let (templates, variables) = io::read_files_to_string(path)?;
     let mut generated_yaml = HashMap::new();
 
     for (name, tmpl) in templates {
-        let res = parser::get_parsed_objects(tmpl.as_str())
+        let updated_templates = vars::replace_variables(tmpl.as_str(), &variables)
+            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+        
+        let res = parser::get_parsed_objects(updated_templates.as_str())
             .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
 
         let yaml = kube::generate_yaml(res)

@@ -7,7 +7,10 @@ mod spec;
 
 use std::collections::{BTreeMap, HashMap};
 use toml::Value;
-use super::helper::error::LError;
+use super::helper::error::{
+    LError,
+    object::Error
+};
 use super::helper::toml::{
     get_value_for_t,
     get_value_for_t_lax
@@ -98,9 +101,9 @@ impl Object {
     fn new(ast: &Value) -> Result<Object, LError> {
         let name = get_value_for_t_lax::<String>(ast, "name");
         let version = get_value_for_t_lax::<String>(ast, "version");
-        let kind = Kind::convert(ast);
         let metadata = get_value_for_t::<BTreeMap<String, String>>(ast, "metadata")?;
-
+        let kind = Kind::convert(ast);
+        
         Ok(Object {
             kind,
             name,
@@ -200,6 +203,7 @@ pub fn get_parsed_objects(tmpl: &str) -> Result<Object, LError> {
         .set_annotations(&ast)
         .set_volumes(&ast)
         .set_spec(&ast);
+
     Ok(object)
 }
 
