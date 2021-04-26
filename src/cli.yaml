@@ -18,3 +18,8 @@ subcommands:
             about: destination folder
             required: false
             takes_value: true
+        - merge:
+            short: m
+            about: return the yaml output in a single file
+            required: false
+            takes_value: false
