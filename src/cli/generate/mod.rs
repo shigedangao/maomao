@@ -57,7 +57,7 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
         .join("");
 
     if let Some(output_path) = output {
-        if merge {
+        if !merge {
             return io::write_multiple_files(output_path, generated_yaml);
         }
 

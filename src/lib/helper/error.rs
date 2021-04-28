@@ -75,34 +75,6 @@ pub mod network {
     }
 }
 
-pub mod object {
-    use std::fmt;
-    use std::convert::From;
-
-    #[derive(Debug)]
-    pub enum Error {
-        KindNotSet
-    }
-
-    impl std::error::Error for Error {}
-
-    impl fmt::Display for Error {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            match self {
-                Error::KindNotSet => write!(f, "Property `kind` is not set. Make sure that it's set")
-            }
-        }
-    }
-
-    impl From<Error> for super::LError {
-        fn from(err: Error) -> Self {
-            super::LError {
-                message: err.to_string()
-            }
-        }
-    }    
-}
-
 pub mod workload {
     use std::fmt;
     use std::convert::From;

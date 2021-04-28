@@ -7,10 +7,7 @@ mod spec;
 
 use std::collections::{BTreeMap, HashMap};
 use toml::Value;
-use super::helper::error::{
-    LError,
-    object::Error
-};
+use super::helper::error::LError;
 use super::helper::toml::{
     get_value_for_t,
     get_value_for_t_lax

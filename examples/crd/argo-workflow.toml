@@ -20,17 +20,13 @@ metadata = { generatedName = "steps-" }
             template = "whalesay"
             
             [spec.templates.steps.arguments]
-                parameters = [
-                    { name = "message", value = "hello1" }
-                ]
+                parameters = ["$[parameters::typed]"]
 
         [[spec.templates.steps]]
             name = "hello bar"
             template = "whalesay"
             [spec.templates.steps.arguments]
-                parameters = [
-                    { name = "message", value = "hello1" }
-                ]
+                parameters = ["$[parameters::typed]"]
 
     [[spec.templates]]
         name = "whalesay"
