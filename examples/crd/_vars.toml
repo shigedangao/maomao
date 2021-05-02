@@ -1,0 +1,5 @@
+parameters = { name = "message", value = "hello1" }
+domains = [
+    "rusty-dev.co.kr",
+    "rusty-dyn.co.kr"
+]

@@ -7,5 +7,5 @@ replicas = 5
 image_provider = "eu.gcr.io"
 image_name = "nginx"
 # should be referenced as "$[arr::typed" -> typed use replace the entire section including the quotes 
-arr = ["default_configmap"]
+map = ["default_configmap"]
 from = { type = "map", name = "foo", item = "lol" }
