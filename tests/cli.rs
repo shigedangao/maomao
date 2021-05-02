@@ -57,3 +57,34 @@ fn expect_to_generate_custom_crd() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+#[test]
+fn expect_to_generate_yaml_even_folder_not_exist() -> Result<(), Box<dyn Error>> {
+    let mut cmd = Command::cargo_bin("maomao")?;
+
+    cmd
+        .arg("generate")
+        .arg("-p")
+        .arg("examples")
+        .arg("-o")
+        .arg("./bar");
+    cmd.assert().success();
+
+    Ok(())
+}
+
+#[test]
+fn expect_to_return_error_toml_not_found() -> Result<(), Box<dyn Error>> {
+    let mut cmd = Command::cargo_bin("maomao")?;
+
+    cmd
+        .arg("generate")
+        .arg("-p")
+        .arg("foo");
+    let output = cmd.output()?.stdout;
+    let output_str = String::from_utf8(output)?;
+
+    assert!(output_str.contains("No such file or directory (os error 2)"));
+
+    Ok(())
+}
