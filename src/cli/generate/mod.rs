@@ -33,22 +33,7 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     let output = args.value_of(ARG_OUTPUT);
     let merge = args.is_present(ARG_MERGE);
 
-    let (templates, variables) = io::read_files_to_string(path)?;
-    let mut generated_yaml = HashMap::new();
-
-    for (name, tmpl) in templates {
-        let updated_templates = vars::replace_variables(tmpl.as_str(), &variables)
-            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
-        
-        let res = parser::get_parsed_objects(updated_templates.as_str())
-            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
-
-        let yaml = kube::generate_yaml(res)
-            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
-
-        generated_yaml.insert(name, yaml);
-    }
-
+    let generated_yaml = template_variables(path)?;
     let stitched_yaml = generated_yaml
         .clone()
         .into_iter()
@@ -68,4 +53,34 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     println!("{}", stitched_yaml);
 
     Ok(())
+}
+
+/// Template Variables
+///
+/// # Description
+/// Replace variables by _vars.toml value in TOML template
+///
+/// # Arguments
+/// * `path` - &str
+///
+/// # Return
+/// Result<HashMap<String, String>, CError>
+pub fn template_variables(path: &str) -> Result<HashMap<String, String>, CError> {
+    let (templates, variables) = io::read_files_to_string(path)?;
+    let mut generated_yaml = HashMap::new();
+
+    for (name, tmpl) in templates {
+        let updated_templates = vars::replace_variables(tmpl.as_str(), &variables)
+            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+        
+        let res = parser::get_parsed_objects(updated_templates.as_str())
+            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+
+        let yaml = kube::generate_yaml(res)
+            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+
+        generated_yaml.insert(name, yaml);
+    }
+
+    Ok(generated_yaml)
 }

@@ -91,10 +91,10 @@ impl VolumeClaimTemplates {
 
         let desc = VolumeMetadataInfo {
             access_modes,
-            data_source,
             class_name,
-            name,
-            mode
+            data_source,
+            mode,
+            name
         };
 
         self.description = Some(desc);
@@ -139,21 +139,17 @@ impl VolumeClaimTemplates {
 /// Option<HashMap<String, String>>
 fn get_hmap_from_vec_toml(ast: &Value, key: &str) -> Option<HashMap<String, String>> {
     let value = ast.get(key);
-    if value.is_none() {
-        return None;
-    }
-
-    let extracted = value.unwrap();
+    let extracted = value.as_ref()?;
     if !extracted.is_array() {
         return None;
     }
 
     let extracted = extracted.as_array().unwrap();
     let map: HashMap<String, String> = extracted
-        .into_iter()
+        .iter()
         .map(|v| {
-            let name = get_value_for_t_lax::<String>(v, "key_name").unwrap_or("".to_owned());
-            let value = get_value_for_t_lax::<String>(v, "value").unwrap_or("".to_owned());
+            let name = get_value_for_t_lax::<String>(v, "key_name").unwrap_or_default();
+            let value = get_value_for_t_lax::<String>(v, "value").unwrap_or_default();
 
             (name, value)
         })

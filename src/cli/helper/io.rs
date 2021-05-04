@@ -63,7 +63,7 @@ pub fn write_file(path: &str, contents: &str) -> Result<(), CError> {
     }
 
     fs::write(path, contents)
-        .map_err(|err| CError::from(err))
+        .map_err(CError::from)
 }
 
 /// Write Multiple Files
@@ -89,7 +89,7 @@ pub fn write_multiple_files(path: &str, map: HashMap<String, String>) -> Result<
         concat_path.push(format!("{}.yaml", name));
 
         fs::write(concat_path, content)
-            .map_err(|err| CError::from(err))?;
+            .map_err(CError::from)?;
     }
 
     Ok(())

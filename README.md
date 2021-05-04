@@ -6,6 +6,7 @@ Just trying to convert TOML to Kubernetes YAML
 
 ```bash
 cargo run generate -p <path> -o [OPTIONAl] <output_path> -m [OPTIONAL]
+cargo run diff -p <path>
 ```
 
 ## Custom CRD

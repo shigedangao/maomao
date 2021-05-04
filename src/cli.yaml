@@ -1,7 +1,7 @@
 name: maomao
 version: "0.1"
 author: "Marc I. <marc.inthaamnouay@gmail.com>"
-about: Generate kubernetes conf from toml
+about: Generate kubernetes conf from TOML
 subcommands:
   - generate:
       about: Generate Kubernetes template from TOML template
@@ -23,3 +23,13 @@ subcommands:
             about: return the yaml output in a single file
             required: false
             takes_value: false
+  - diff:
+      about: Diff kubernetes generated YAML from TOML template with the cluster
+      version: "v0.1"
+      short: d
+      long: diff
+      args:
+        - path:
+            short: p
+            about: path of the toml templates
+            takes_value: true

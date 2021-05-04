@@ -71,7 +71,7 @@ impl PodSpecWrapper {
     /// Self
     fn set_containers(mut self, parser_containers: Vec<ParserContainer>) -> Self {
         let containers = parser_containers.into_iter()
-            .map(|c| Container::from(c))
+            .map(Container::from)
             .collect::<Vec<Container>>();
 
         self.spec.containers = containers;
@@ -97,7 +97,7 @@ impl PodSpecWrapper {
 
         let tolerations = parser_tolerations.unwrap()
             .into_iter()
-            .map(|t | Toleration::from(t))
+            .map(Toleration::from)
             .collect::<Vec<Toleration>>();
 
         self.spec.tolerations = Some(tolerations);
@@ -131,7 +131,7 @@ impl From<ParserContainer> for Container {
         if let Some(volume_mounts) = c.volume_mounts {
             let mounts = volume_mounts
                 .into_iter()
-                .map(|m| VolumeMount::from(m))
+                .map(VolumeMount::from)
                 .collect::<Vec<VolumeMount>>();
 
             container.volume_mounts = Some(mounts);
@@ -156,8 +156,8 @@ impl From<ParserToleration> for Toleration {
 impl From<ParserVolumeMount> for VolumeMount {
     fn from(t: ParserVolumeMount) -> Self {
         VolumeMount {
-            name: t.name.unwrap_or("".to_owned()),
-            mount_path: t.path.unwrap_or("".to_owned()),
+            name: t.name.unwrap_or_default(),
+            mount_path: t.path.unwrap_or_default(),
             read_only: t.read_only,
             ..Default::default()
         }

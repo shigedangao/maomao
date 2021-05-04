@@ -97,7 +97,7 @@ mod tests {
             'external-dns.alpha.kubernetes.io/hostname' = 'rusty.dev.org.'
         
             [service]
-                type = 'nodeport'
+                type = 'NodePort'
 
                 [service.ports]
 
@@ -119,7 +119,7 @@ mod tests {
         assert_eq!(annotations.get("external-dns.alpha.kubernetes.io/hostname").unwrap(), "rusty.dev.org.");
 
         let spec = service.spec.unwrap();
-        assert_eq!(spec.type_.unwrap(), "nodeport");
+        assert_eq!(spec.type_.unwrap(), "NodePort");
         
         let ports = spec.ports.as_ref().unwrap().get(0).unwrap();
         assert_eq!(ports.name.as_ref().unwrap(), "http");
@@ -141,7 +141,7 @@ mod tests {
             'external-dns.alpha.kubernetes.io/hostname' = 'rusty.dev.org.'
         
             [service]
-                type = 'nodeport'
+                type = 'NodePort'
 
                 [service.ports]
 

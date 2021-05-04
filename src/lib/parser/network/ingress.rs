@@ -4,7 +4,11 @@ use crate::lib::helper::error::{
     LError,
     network::Error
 };
-use crate::lib::helper::toml::{get_value_for_t, get_value_for_t_from};
+use crate::lib::helper::toml::{
+    get_value_for_t,
+    get_value_for_t_from,
+    get_value_for_t_lax
+};
 use crate::lib::helper::conv::Convert;
 use super::backend;
 
@@ -72,7 +76,7 @@ impl Ingress {
         let mut ingress_rules = Vec::new();
         for (_, rules) in rules.into_iter() {
             let host = get_value_for_t::<String>(&rules, "host")
-                .unwrap_or("".to_owned());
+                .unwrap_or_default();
 
             let paths = rules.get("paths")
                 .ok_or_else(|| LError::from(Error::PathNotFound))?;
@@ -137,21 +141,10 @@ impl Ingress {
             return Ok(self);
         }
 
-        let secrets = get_value_for_t::<String>(tls_ast.unwrap(), "secrets");
-        let hosts = get_value_for_t::<Vec<String>>(tls_ast.unwrap(), "hosts");
+        let secrets = get_value_for_t_lax::<String>(tls_ast.unwrap(), "secrets");
+        let hosts = get_value_for_t_lax::<Vec<String>>(tls_ast.unwrap(), "hosts");
 
-        let mut tls = Tls::default();
-        // Should log something here I guess
-        match secrets {
-            Ok(res) => tls.secrets = Some(res),
-            Err(_) => {}
-        };
-
-        match hosts {
-            Ok(res) => tls.hosts = Some(res),
-            Err(_) => {}
-        };
-
+        let tls = Tls { hosts, secrets };
         self.tls = Some(tls);
         Ok(self)
     }   
@@ -180,8 +173,8 @@ impl From<Value> for IngressHTTPPath {
     /// # Return
     /// Self
     fn from(ast: Value) -> Self {
-        let kind = get_value_for_t::<String>(&ast, "type").unwrap_or("".to_owned());
-        let path = get_value_for_t::<String>(&ast, "path").unwrap_or("".to_owned());
+        let kind = get_value_for_t::<String>(&ast, "type").unwrap_or_default();
+        let path = get_value_for_t::<String>(&ast, "path").unwrap_or_default();
         
         if let Some(backend_ast) = ast.get("backend") {
             return IngressHTTPPath {
@@ -191,7 +184,7 @@ impl From<Value> for IngressHTTPPath {
             }
         }
 
-        return IngressHTTPPath {
+        IngressHTTPPath {
             kind,
             path,
             backend: backend::Backend::default()

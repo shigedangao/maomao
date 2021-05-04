@@ -60,7 +60,7 @@ impl Service {
 
 impl From<Value> for Port {
     fn from(ast: Value) -> Self {
-        let protocol = get_value_for_t::<String>(&ast, "protocol").unwrap_or(String::new());
+        let protocol = get_value_for_t::<String>(&ast, "protocol").unwrap_or_default();
         let port = get_value_for_t::<i64>(&ast, "port").unwrap_or(0);
         let target_port = get_value_for_t::<i64>(&ast, "target_port").unwrap_or(0);
         let node_port = get_value_for_t_lax::<i32>(&ast, "node_port");
@@ -87,11 +87,7 @@ impl From<Value> for Port {
 ///     [service.ports.<xx>]
 fn get_ports(past: &Value) -> Option<BTreeMap<String, Port>> {
     let map = past.as_table();
-    if map.is_none() {
-        return None;
-    }
-
-    let map = map.unwrap();
+    let map = map.as_ref()?;
     let btree = map
         .into_iter()
         .map(|(k, v)| {
@@ -128,7 +124,7 @@ mod test {
     fn expect_to_parse_service_type() {
         let template = "
             [service]
-                type = 'nodeport'
+                type = 'NodePort'
         ";
 
         let ast = template.parse::<Value>().unwrap();
@@ -137,14 +133,14 @@ mod test {
         let service = get_service(&service_ast);
         assert!(service.is_ok());
 
-        assert_eq!(service.unwrap().kind, "nodeport");
+        assert_eq!(service.unwrap().kind, "NodePort");
     }
 
     #[test]
     fn expect_to_parse_service_ports_type() {
         let template = "
             [service]
-                type = 'nodeport'
+                type = 'NodePort'
 
                 [service.ports]
                     [service.ports.http]

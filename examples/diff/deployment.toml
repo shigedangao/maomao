@@ -1,0 +1,13 @@
+# a deployment
+kind = "workload::deployment"
+name = "rusty"
+metadata = { name = "rusty", tier = "backend" }
+
+# container name rust
+[workload]
+    replicas = "$[replicas]"
+
+    [workload.rust]
+    image = "eu.gcr.io/nginx"
+    tag = "bar"
+    policy = "IfNotPresent"

@@ -43,12 +43,12 @@ impl From<Value> for EnvRefKey {
     fn from(ast: Value) -> Self {
         let from_field = get_value_for_t_lax::<String>(&ast, "from_field");
         let item = get_value_for_t_lax::<String>(&ast, "item");
-        let name = get_value_for_t::<String>(&ast, "name").unwrap_or(String::new());
+        let name = get_value_for_t::<String>(&ast, "name").unwrap_or_default();
 
         EnvRefKey {
             from_field,
-            name,
-            item
+            item,
+            name
         }
     }
 }
@@ -68,7 +68,7 @@ impl EnvRefKey {
     fn from_vec(value: Vec<Value>) -> Vec<Self> {
         value
             .into_iter()
-            .map(|v| EnvRefKey::from(v))
+            .map(EnvRefKey::from)
             .collect::<Vec<Self>>()
     }
 } 

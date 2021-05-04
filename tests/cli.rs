@@ -88,3 +88,16 @@ fn expect_to_return_error_toml_not_found() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+#[test]
+fn expect_to_run_diff_run() -> Result<(), Box<dyn Error>> {
+    let mut cmd = Command::cargo_bin("maomao")?;
+
+    cmd
+        .arg("diff")
+        .arg("-p")
+        .arg("examples/diff");
+    cmd.assert().success();
+
+    Ok(())
+}
