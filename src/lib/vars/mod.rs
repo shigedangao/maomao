@@ -169,4 +169,22 @@ mod test {
         let parser_object = super::super::parser::get_parsed_objects(&new_template);
         assert!(parser_object.is_ok());
     }
+
+    #[test]
+    fn expect_to_replace_mix_array() {
+        let template = r#"
+        foo = ["$[from::typed]", "$[str]"]
+        "#;
+
+        let var = r#"
+        from = { hey = "you" }
+        str = "wou"
+        "#;
+
+        let res = super::replace_variables(template, &Some(var.to_owned()));
+        assert!(res.is_ok());
+
+        let new_template = res.unwrap();
+        assert!(new_template.contains(r#"foo = [{ hey = "you" }, "wou"]"#));
+    }
 }

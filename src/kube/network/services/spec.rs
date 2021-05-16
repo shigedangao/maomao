@@ -39,12 +39,8 @@ pub fn get_service_spec(service: Service) -> ServiceSpec {
 /// # Return
 /// Option<Vec<ServicePort>>
 pub fn get_service_ports(service: &Service) -> Option<Vec<ServicePort>> {
-    if service.ports.is_none() {
-        return None;
-    }
-
-    let ports_map = service.ports.to_owned().unwrap();
-    let ports = ports_map
+    let ports_map =service.ports.as_ref()?;
+    let ports = ports_map.to_owned()
         .into_iter()
         .map(|(name, port)| {
             let mut p = ServicePort::from(port);

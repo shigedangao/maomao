@@ -10,6 +10,7 @@ fn main() {
 
     let res = match matches.subcommand() {
         Some(("generate", args)) => cli::generate::run(args),
+        Some(("diff", args)) => cli::diff::run(args),
         _ => Ok(())
     };
 

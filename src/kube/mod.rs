@@ -1,6 +1,7 @@
 pub mod workload;
+pub mod dry;
+pub mod helper;
 
-mod helper;
 mod network;
 mod common;
 mod crd;

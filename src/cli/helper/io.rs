@@ -5,7 +5,6 @@ use crate::cli::helper::error::CError;
 use super::error::TypeError;
 
 // Error constant
-const NOT_DIR: &str = "Path is not a directory";
 const NO_YAML: &str = "Path is not a .yaml file";
 
 /// Read Files To String
@@ -64,7 +63,7 @@ pub fn write_file(path: &str, contents: &str) -> Result<(), CError> {
     }
 
     fs::write(path, contents)
-        .map_err(|err| CError::from(err))
+        .map_err(CError::from)
 }
 
 /// Write Multiple Files
@@ -82,15 +81,15 @@ pub fn write_multiple_files(path: &str, map: HashMap<String, String>) -> Result<
     // Check that the path is a directory
     let p = PathBuf::from(path);
     if !p.is_dir() {
-        return Err(CError::from(TypeError::Io(NOT_DIR.to_owned())));
-    } 
+        fs::create_dir(p)?;
+    }
 
     for (name, content) in map {
         let mut concat_path = PathBuf::from(path);
         concat_path.push(format!("{}.yaml", name));
 
         fs::write(concat_path, content)
-            .map_err(|err| CError::from(err))?;
+            .map_err(CError::from)?;
     }
 
     Ok(())

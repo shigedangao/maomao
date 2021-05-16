@@ -42,13 +42,9 @@ impl Toleration {
     /// Option<Vec<Toleration>>
     pub fn get_toleration_list(ast: &Value) -> Option<Vec<Toleration>> {
         let values = ast.get("tolerations");
-        if values.is_none() {
-            return None;
-        }
-
-        if let Some(arr) = values.unwrap().as_array() {
-            let tolerations = arr.into_iter()
-                .map(|v| Toleration::convert(v))
+        if let Some(arr) = values.as_ref()?.as_array() {
+            let tolerations = arr.iter()
+                .map(Toleration::convert)
                 .collect::<Vec<Toleration>>();
 
             return Some(tolerations);

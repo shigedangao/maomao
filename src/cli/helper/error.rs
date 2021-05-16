@@ -7,7 +7,8 @@ use std::io::Error as IOError;
 pub enum TypeError {
     Io(String),
     Lib(String),
-    MissingArg(String)
+    MissingArg(String),
+    MissingRes(String)
 }
 
 impl std::fmt::Display for TypeError {
@@ -15,7 +16,8 @@ impl std::fmt::Display for TypeError {
         match self {
             TypeError::Io(msg) => write!(f, "An error occurred during I/O Operation: {}", msg),
             TypeError::Lib(msg) => write!(f, "An error occured with the parser library: {}", msg),
-            TypeError::MissingArg(msg) => write!(f, "Argument not found: {}", msg)
+            TypeError::MissingArg(msg) => write!(f, "Argument not found: {}", msg),
+            TypeError::MissingRes(msg) => write!(f, "Missing result of: {}", msg)
         }
     }
 }

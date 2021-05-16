@@ -6,10 +6,17 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  tests:
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+    - uses: AbsaOSS/k3d-action@v1.4.0
+      name: "Create single cluster"
+      with:
+        cluster-name: "ramen"
+        args: --agents 1
+    - name: Install app
+      run: kubectl apply -f ci/app.yaml
     - name: Build
       run: cargo build --verbose
     - name: Run tests

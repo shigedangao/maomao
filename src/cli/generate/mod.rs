@@ -33,6 +33,39 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     let output = args.value_of(ARG_OUTPUT);
     let merge = args.is_present(ARG_MERGE);
 
+    let generated_yaml = template_variables(path)?;
+    let stitched_yaml = generated_yaml
+        .clone()
+        .into_iter()
+        .map(|(_, v)| v)
+        .collect::<Vec<String>>()
+        .join("");
+
+    if let Some(output_path) = output {
+        if !merge {
+            return io::write_multiple_files(output_path, generated_yaml);
+        }
+
+        return io::write_file(output_path, &stitched_yaml);
+    }
+
+    // Otherwise print on the console
+    println!("{}", stitched_yaml);
+
+    Ok(())
+}
+
+/// Template Variables
+///
+/// # Description
+/// Replace variables by _vars.toml value in TOML template
+///
+/// # Arguments
+/// * `path` - &str
+///
+/// # Return
+/// Result<HashMap<String, String>, CError>
+pub fn template_variables(path: &str) -> Result<HashMap<String, String>, CError> {
     let (templates, variables) = io::read_files_to_string(path)?;
     let mut generated_yaml = HashMap::new();
 
@@ -49,23 +82,5 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
         generated_yaml.insert(name, yaml);
     }
 
-    let stitched_yaml = generated_yaml
-        .clone()
-        .into_iter()
-        .map(|(_, v)| v)
-        .collect::<Vec<String>>()
-        .join("");
-
-    if let Some(output_path) = output {
-        if merge {
-            return io::write_multiple_files(output_path, generated_yaml);
-        }
-
-        return io::write_file(output_path, &stitched_yaml);
-    }
-
-    // Otherwise print on the console
-    println!("{}", stitched_yaml);
-
-    Ok(())
+    Ok(generated_yaml)
 }
