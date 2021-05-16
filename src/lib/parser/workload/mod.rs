@@ -44,12 +44,12 @@ impl Container {
     /// - image
     ///
     /// # Arguments
-    /// * `name` &String
+    /// * `name` &str
     /// * `ast` &Value
     ///
     /// # Return
     /// Result<Self, LError>
-    fn new(name: &String, ast: &Value) -> Result<Self, LError> {
+    fn new(name: &str, ast: &Value) -> Result<Self, LError> {
         let image_repo = get_value_for_t::<String>(ast, "image")?;
         let image_tag = get_value_for_t::<String>(ast, "tag")?;
         let policy = get_value_for_t_lax::<String>(ast, "policy");

@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    name: rusty
+    tier: backend
+  name: rusty
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: rusty
+      tier: backend
+  template:
+    metadata:
+      labels:
+        name: rusty
+        tier: backend
+    spec:
+      containers:
+        - image: "eu.gcr.io/nginx:bar"
+          imagePullPolicy: IfNotPresent
+          name: rust
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: rusty.dev.org.
+  labels:
+    name: rusty
+    tier: backend
+  name: rusty
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 90
+  selector:
+    name: rusty
+    tier: backend
+  type: NodePort

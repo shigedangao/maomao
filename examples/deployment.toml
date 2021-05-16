@@ -14,17 +14,17 @@ metadata = { name = "rusty", tier = "backend" }
 
         # env from
         [workload.rust.env_from]
-        map = "$[map::typed]"
-        secret = [
-            "default_secret"
-        ]
+        # map = "$[map::typed]"
+        # secret = [
+        #     "default_secret"
+        # ]
 
         # env
         [workload.rust.env]
-        from = [
-            "$[from::typed]",
-            { type = "res_field", name = "rust-container", item = "limits.cpu" }
-        ]
+        # from = [
+        #     "$[from::typed]",
+        #     { type = "res_field", name = "rust-container", item = "limits.cpu" }
+        # ]
         raw = [
             { name = "A_VALUE", item = "bar" }
         ]

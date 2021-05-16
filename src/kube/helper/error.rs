@@ -2,6 +2,7 @@ use std::fmt;
 use std::convert::From;
 use std::error::Error;
 use serde_yaml::Error as SerdeYamlError;
+use serde_json::Error as SerdeJsonError;
 use crate::lib::helper::error::LError;
 
 /// KubeError
@@ -50,9 +51,28 @@ impl From<SerdeYamlError> for KubeError {
     }
 }
 
+impl From<SerdeJsonError> for KubeError {
+    fn from(err: SerdeJsonError) -> Self {
+        KubeError {
+            message: err.to_string()
+        }
+    }
+}
+
+impl From<common::Error> for KubeError {
+    fn from(err: common::Error) -> Self {
+        KubeError { message: err.to_string() }
+    }
+}
+
+impl<'a> From<dry_run::Error<'a>> for KubeError {
+    fn from(err: dry_run::Error) -> Self {
+        KubeError { message: err.to_string() }
+    }
+}
+
 pub mod common {
     use std::fmt;
-    use std::convert::From;
     
     #[derive(Debug)]
     pub enum Error {
@@ -66,13 +86,24 @@ pub mod common {
             }
         }
     }
+}
 
-    impl std::error::Error for Error {}
+pub mod dry_run {
+    use std::fmt;
 
-    impl From<Error> for super::KubeError {
-        fn from(err: Error) -> Self {
-            super::KubeError {
-                message: err.to_string()
+    #[derive(Debug)]
+    pub enum Error<'a> {
+        MissingApiVersion,
+        MissingSpecName,
+        RemoveManagedField(&'a str)
+    }
+
+    impl<'a> fmt::Display for Error<'a> {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                Error::MissingApiVersion => write!(f, "apiVersion is either missing or malformatted from the spec"),
+                Error::MissingSpecName => write!(f, "`name` could not be founded in the metadata"),
+                Error::RemoveManagedField(name) => write!(f, "Something went wrong when updating the metadata. Check the status of metadata.managedField for {}", name)
             }
         }
     }

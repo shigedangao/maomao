@@ -45,7 +45,7 @@ impl IngressWrapper {
     /// # Return
     /// Result<Self, KubeError>
     fn set_spec(mut self, object: &Object) -> Result<Self, KubeError>{
-        if let None = object.spec {
+        if object.spec.is_none() {
             return Err(KubeError::from(Error::MissingSpec));
         }
 

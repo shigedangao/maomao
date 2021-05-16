@@ -31,9 +31,9 @@ impl VolumeMount {
         }
     }
 
-    pub fn from_toml_array(v: &Vec<Value>) -> Option<Vec<VolumeMount>> {
+    pub fn from_toml_array(v: &[Value]) -> Option<Vec<VolumeMount>> {
         let v = v
-            .into_iter()
+            .iter()
             .map(|item| VolumeMount::new(item))
             .collect::<Vec<VolumeMount>>();
 

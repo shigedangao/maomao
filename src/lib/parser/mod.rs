@@ -52,7 +52,7 @@ impl Convert for Kind {
 
         let t = kind.get(0);
         let arg = kind.get(1)
-            .unwrap_or_else(|| &"")
+            .unwrap_or(&"")
             .to_string();
 
         if t.is_none() {
@@ -312,7 +312,7 @@ mod test {
             metadata = { name = 'rusty', tier = 'backend' }
 
             [service]
-                type = 'nodeport'
+                type = 'NodePort'
 
                 [service.ports]
 
@@ -328,7 +328,7 @@ mod test {
         let network = object.unwrap().spec.unwrap().network.unwrap();
         let service = network.service;
         assert!(service.is_some());
-        assert_eq!(service.unwrap().kind, "nodeport");
+        assert_eq!(service.unwrap().kind, "NodePort");
     }
 
 

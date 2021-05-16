@@ -103,7 +103,7 @@ fn get_http_ingress_paths(paths: Option<Vec<IngressHTTPPath>>) -> Vec<HTTPIngres
     if let Some(paths) = paths {
         let api_paths = paths
             .into_iter()
-            .map(|p| HTTPIngressPath::from(p))
+            .map(HTTPIngressPath::from)
             .collect::<Vec<HTTPIngressPath>>();
 
         return api_paths;

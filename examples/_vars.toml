@@ -2,7 +2,7 @@
 # literal such as String, Integer, Float, Boolean could be replace without too much overhead
 #
 # wip on toml table and arrays
-replicas = 5
+replicas = 1
 
 image_provider = "eu.gcr.io"
 image_name = "nginx"

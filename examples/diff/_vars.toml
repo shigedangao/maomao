@@ -1,0 +1,5 @@
+# Variables that could be use to replace values in TOML file to make it more flexilble
+# literal such as String, Integer, Float, Boolean could be replace without too much overhead
+#
+# wip on toml table and arrays
+replicas = 5

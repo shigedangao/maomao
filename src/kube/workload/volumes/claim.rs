@@ -90,8 +90,8 @@ fn get_typed_local_object_reference(m: Option<DataSource>) -> Option<TypedLocalO
     if let Some(data_source) = m {
         return Some(TypedLocalObjectReference {
             api_group: None,
-            kind: data_source.kind.unwrap_or("".to_owned()),
-            name: data_source.name.unwrap_or("".to_owned())
+            kind: data_source.kind.unwrap_or_default(),
+            name: data_source.name.unwrap_or_default()
         });
     }
 
@@ -106,13 +106,9 @@ fn get_typed_local_object_reference(m: Option<DataSource>) -> Option<TypedLocalO
 /// # Return
 /// Option<Vec<PersistentVolumeClaim>>
 pub fn get_pvc_list(object: &parser::Object) -> Option<Vec<PersistentVolumeClaim>> {
-    if object.volume_claim.is_none() {
-        return None;
-    }
-
-    let volume_claim = object.volume_claim.to_owned().unwrap();
+    let volume_claim = object.volume_claim.as_ref()?;
     let claims = volume_claim
-        .into_iter()
+        .iter()
         .map(|(_, p)| PvcWrapper::new(&p).set_spec(&p))
         .map(|p| p.pvc)
         .collect::<Vec<PersistentVolumeClaim>>();

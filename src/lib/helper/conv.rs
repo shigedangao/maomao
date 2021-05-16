@@ -105,7 +105,7 @@ impl Convert for Vec<String> {
 
         let array = v.as_array().unwrap();
         array
-            .into_iter()
+            .iter()
             .map(|s| String::convert(s))
             .collect()
     }
