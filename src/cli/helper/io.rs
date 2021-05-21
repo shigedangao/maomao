@@ -5,7 +5,7 @@ use crate::cli::helper::error::CError;
 use super::error::TypeError;
 
 // Error constant
-const NO_YAML: &str = "Path is not a .yaml file";
+const NO_YAML: &str = "Target path is not of type .yaml";
 
 /// Read Files To String
 ///
@@ -58,7 +58,7 @@ pub fn write_file(path: &str, contents: &str) -> Result<(), CError> {
     let p = PathBuf::from(path);
     if let Some(ext) = p.extension() {
         if !ext.eq("yaml") {
-            return Err(CError::from(TypeError::Io(NO_YAML.to_owned())));
+            return Err(CError::from(TypeError::Io(NO_YAML)));
         }
     }
 

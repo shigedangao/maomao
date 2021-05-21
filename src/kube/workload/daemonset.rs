@@ -52,14 +52,20 @@ impl DaemonSetWrapper {
         let parser_spec = object.spec.to_owned()
             .ok_or_else(|| KubeError::from(Error::MissingSpec))?;
 
-        let workload = parser_spec.workload?;
-        let spec = DaemonSetSpec {
-            selector: common::get_label_selector_from_object(&object),
-            template: pod::get_pod_template_spec(workload, metadata),
-            ..Default::default()
-        };
+        if let Some(workload) = parser_spec.workload {
+            let spec = DaemonSetSpec {
+                selector: common::get_label_selector_from_object(&object),
+                template: pod::get_pod_template_spec(workload, metadata),
+                ..Default::default()
+            };
 
-        self.workload.spec = Some(spec);
+            self.workload.spec = Some(spec);
+        }
+
+        if let Some(err) = parser_spec.error {
+            return Err(KubeError::from(err));
+        }
+
         Ok(self)
     }
 }

@@ -3,6 +3,7 @@ mod cli;
 mod kube;
 
 use clap::{App, load_yaml};
+use termion::color;
 
 fn main() {
     let yaml = load_yaml!("cli.yaml");
@@ -15,6 +16,6 @@ fn main() {
     };
 
     if let Err(err) = res {
-        println!("{:?}", err.message);
+        println!("{} an error occurred: {}", color::Fg(color::Red), err.message);
     }
 }

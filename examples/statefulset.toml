@@ -1,7 +1,7 @@
 # a statefulset
 kind = "workload::statefulset"
-name = "rusty"
-metadata = { name = "rusty", tier = "backend" }
+name = "nginx"
+metadata = { name = "nginx", tier = "backend" }
 
 [volume_claims]
     [volume_claims.rust]

@@ -4,7 +4,6 @@
 # wip on toml table and arrays
 replicas = 1
 
-image_provider = "eu.gcr.io"
 image_name = "nginx"
 # should be referenced as "$[arr::typed" -> typed use replace the entire section including the quotes 
 map = ["default_configmap"]

@@ -56,7 +56,7 @@ pub mod network {
 
     impl fmt::Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            match *self {
+            match self {
                 Error::IngressWrongType => write!(f, "Unable to convert the ingress definition to a map"),
                 Error::MissingRules => write!(f, "Missing ingress [rules] property"),
                 Error::PathNotFound => write!(f, "[paths] not found")
@@ -80,19 +80,19 @@ pub mod workload {
     use std::convert::From;
 
     #[derive(Debug)]
-    pub enum Error {
+    pub enum Error<'a> {
         WorkloadNotExist,
         WorkloadMalformatted,
         // env module in workload
-        EnvFieldNotFound(&'static str),
-        EnvFieldMalformatted(&'static str),
-        KeyNotFound(&'static str),
-        KeyNotArray(&'static str)
+        EnvFieldNotFound(&'a str),
+        EnvFieldMalformatted(&'a str),
+        KeyNotFound(&'a str),
+        KeyNotArray(&'a str)
     }
 
-    impl std::error::Error for Error {}
+    impl<'a> std::error::Error for Error<'a> {}
 
-    impl fmt::Display for Error {
+    impl<'a> fmt::Display for Error<'a> {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 Error::WorkloadNotExist => write!(f, "Workload does not exist. Make sure that [workload] is set on the template"),
@@ -105,7 +105,7 @@ pub mod workload {
         }
     }
 
-    impl From<Error> for super::LError {
+    impl<'a> From<Error<'a>> for super::LError {
         fn from(err: Error) -> Self {
             super::LError {
                 message: err.to_string()

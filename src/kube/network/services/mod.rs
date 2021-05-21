@@ -47,11 +47,14 @@ impl ServiceWrapper {
     /// # Return
     /// Result<Self, KubeError>
     fn set_spec(mut self, object: &Object) -> Result<Self, KubeError>{
-        let network = object
+        let spec = object
             .spec
             .to_owned()
-            .ok_or_else(|| KubeError::from(Error::MissingSpec))?
-            .network?;
+            .ok_or_else(|| KubeError::from(Error::MissingSpec))?;
+
+        let network = spec.to_owned()
+            .network
+            .ok_or_else(|| KubeError::from(spec.error.unwrap()))?;
 
         if let Some(service) = network.service {
             let mut service_spec = spec::get_service_spec(service);

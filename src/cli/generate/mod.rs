@@ -28,7 +28,7 @@ const ARG_MERGE: &str = "merge";
 /// Result<(), CError>
 pub fn run(args: &ArgMatches) -> Result<(), CError> {
     let path = args.value_of(ARG_PATH)
-        .ok_or_else(|| CError::from(TypeError::MissingArg(ARG_PATH.to_owned())))?;
+        .ok_or_else(|| CError::from(TypeError::MissingArg(ARG_PATH)))?;
 
     let output = args.value_of(ARG_OUTPUT);
     let merge = args.is_present(ARG_MERGE);
@@ -71,13 +71,13 @@ pub fn template_variables(path: &str) -> Result<HashMap<String, String>, CError>
 
     for (name, tmpl) in templates {
         let updated_templates = vars::replace_variables(tmpl.as_str(), &variables)
-            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+            .map_err(|err| CError::from(TypeError::Lib(&err.message)))?;
         
         let res = parser::get_parsed_objects(updated_templates.as_str())
-            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+            .map_err(|err| CError::from(TypeError::Lib(&err.message)))?;
 
         let yaml = kube::generate_yaml(res)
-            .map_err(|err| CError::from(TypeError::Lib(err.to_string())))?;
+            .map_err(|err| CError::from(TypeError::Lib(&err.message)))?;
 
         generated_yaml.insert(name, yaml);
     }

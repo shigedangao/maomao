@@ -1,0 +1,10 @@
+kind = "env::map"
+name = "nginx-configmap"
+metadata = { name = "nginx-configmap", tier = "backend" }
+
+binary = true
+[data]
+    foo = "bbtea"
+    lol = """
+        bobba=10
+    """

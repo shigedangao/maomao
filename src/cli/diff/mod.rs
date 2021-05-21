@@ -26,7 +26,7 @@ const ARG_PATH: &str = "path";
 /// Result<(), CError>
 pub fn run(args: &ArgMatches) -> Result<(), CError> {
     let path = args.value_of(ARG_PATH)
-        .ok_or_else(|| CError::from(TypeError::MissingArg(ARG_PATH.to_owned())))?;
+        .ok_or_else(|| CError::from(TypeError::MissingArg(ARG_PATH)))?;
 
     let generated_yaml = super::generate::template_variables(path)?;
 
@@ -40,7 +40,7 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     for (name, content) in res {
         let original_spec = generated_yaml.get(&name)
             .ok_or_else(|| CError::from(
-                TypeError::MissingRes("Unable to get the YAML spec".to_owned())
+                TypeError::MissingRes("Unable to get the YAML spec")
             ))?;
 
         let diff = TextDiff::from_lines(original_spec,&content);

@@ -1,6 +1,7 @@
 pub mod network;
 pub mod workload;
 pub mod volume;
+pub mod env;
 
 mod crd;
 mod spec;
@@ -27,6 +28,7 @@ const SPLIT_DELIMITER: &str = "::";
 pub enum Kind {
     Workload(String),
     Network(String),
+    Env(String),
     Custom(String),
     None
 }
@@ -62,6 +64,7 @@ impl Convert for Kind {
         match t.unwrap().to_lowercase().as_str() {
             "workload" => Kind::Workload(arg),
             "network" => Kind::Network(arg),
+            "env" => Kind::Env(arg),
             "custom" => Kind::Custom(arg),
             _ => Kind::None
         }
@@ -138,7 +141,7 @@ impl Object {
     /// * `mut self` - Self
     /// * `ast` - &Value
     fn set_spec(mut self, ast: &Value) -> Self {
-        let spec = spec::get_spec(ast);
+        let spec = spec::get_spec(ast, &self.kind);
         self.spec = Some(spec);
 
         self
@@ -300,7 +303,7 @@ mod test {
 
         let object = object.unwrap();
         assert!(object.spec.is_some());
-        assert!(object.spec.unwrap().workload.is_ok());
+        assert!(object.spec.unwrap().workload.is_some());
     }
 
     #[test]
