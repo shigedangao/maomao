@@ -305,13 +305,15 @@ mod test {
         assert!(container.env_from.is_some());
 
         let env_from = container.env_from.as_ref().unwrap();
-        assert!(!env_from.map.is_empty());
-        assert!(!env_from.secret.is_empty());
+        assert!(env_from.map.is_some());
+        assert!(env_from.secret.is_some());
 
-        let map = env_from.map.get(0).unwrap();
+        let map = env_from.map.to_owned().unwrap();
+        let map = map.get(0).unwrap();
         assert_eq!(map, "default_configmap");
 
-        let secret = env_from.secret.get(0).unwrap();
+        let secret = env_from.secret.to_owned().unwrap();
+        let secret = secret.get(0).unwrap();
         assert_eq!(secret, "default_secret");
     }
 

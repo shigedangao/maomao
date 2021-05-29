@@ -21,8 +21,8 @@ const ENV_FROM_SECRET_KEYNAME: &str = "secret";
 
 #[derive(Debug, Default, Clone)]
 pub struct EnvFrom {
-    pub map: Vec<String>,
-    pub secret: Vec<String>
+    pub map: Option<Vec<String>>,
+    pub secret: Option<Vec<String>>
 }
 
 #[derive(Debug, Default, Clone)]
@@ -138,20 +138,20 @@ pub fn get_env_from(ast: &Value) -> Result<EnvFrom, LError> {
         .as_table()
         .ok_or_else(|| LError::from(Error::EnvFieldMalformatted(ENV_FROM_NAME)))?;
 
+    let mut res = EnvFrom::default();
+
     // retrieve the map table from toml 
     // [workload.<container>.env_from]
     // map = [...]
-    let map = envs_from.get(ENV_FROM_MAP_KEYNAME)
-        .ok_or_else(|| LError::from(Error::EnvFieldNotFound(ENV_FROM_MAP_KEYNAME)))?;
-
+    if let Some(configmap)= envs_from.get(ENV_FROM_MAP_KEYNAME) {
+        res.map = Some(Vec::convert(configmap));
+    }
     // retrieve the map table from toml 
     // [workload.<container>.env_from]
     // secret = [...]
-    let secret = envs_from.get(ENV_FROM_SECRET_KEYNAME)
-        .ok_or_else(|| LError::from(Error::KeyNotFound(ENV_FROM_SECRET_KEYNAME)))?;
+    if let Some(secret) = envs_from.get(ENV_FROM_SECRET_KEYNAME) {
+        res.secret = Some(Vec::convert(secret));
+    }
 
-    Ok(EnvFrom {
-        map: Vec::convert(map),
-        secret: Vec::convert(secret)
-    })
+    Ok(res)
 }
