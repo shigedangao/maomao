@@ -16,7 +16,7 @@ metadata = { name = "nginx", tier = "backend" }
         [workload.nginx.env_from]
         map = "$[map::typed]"
         secret = [
-            "default_secret"
+            "nginx-secret"
         ]
 
         # env

@@ -80,32 +80,23 @@ pub mod workload {
     use std::convert::From;
 
     #[derive(Debug)]
-    pub enum Error<'a> {
+    pub enum Error {
         WorkloadNotExist,
         WorkloadMalformatted,
-        // env module in workload
-        EnvFieldNotFound(&'a str),
-        EnvFieldMalformatted(&'a str),
-        KeyNotFound(&'a str),
-        KeyNotArray(&'a str)
     }
 
-    impl<'a> std::error::Error for Error<'a> {}
+    impl std::error::Error for Error {}
 
-    impl<'a> fmt::Display for Error<'a> {
+    impl fmt::Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 Error::WorkloadNotExist => write!(f, "Workload does not exist. Make sure that [workload] is set on the template"),
-                Error::WorkloadMalformatted => write!(f, "Workload is malformatted. Please check that workload is above it's children"),
-                Error::EnvFieldNotFound(value) => write!(f, "{} field does not exist. Make sure that it's within the workload", value),
-                Error::EnvFieldMalformatted(value) => write!(f, "{} is not a toml table", value),
-                Error::KeyNotFound(value) => write!(f, "{} key is not found. Make sure that it's within the env field", value),
-                Error::KeyNotArray(value) => write!(f, "{} key is not an array. Make sure that it's a valid TOML array", value),
+                Error::WorkloadMalformatted => write!(f, "Workload is malformatted. Please check that workload is above it's children")
             }
         }
     }
 
-    impl<'a> From<Error<'a>> for super::LError {
+    impl From<Error> for super::LError {
         fn from(err: Error) -> Self {
             super::LError {
                 message: err.to_string()

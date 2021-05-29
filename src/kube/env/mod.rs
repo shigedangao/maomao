@@ -94,7 +94,7 @@ impl EnvWrapper {
         }
 
         let env = spec.env.unwrap();
-        if let Some(d) = env.data.to_owned() {
+        if let Some(d) = env.data {
             let bin: BTreeMap<String, ByteString> = d
                 .into_iter()
                 .map(|(k, v)| (k, ByteString(v.as_bytes().to_vec())))

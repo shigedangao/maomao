@@ -73,8 +73,6 @@ impl Container {
     /// - env
     /// - envFrom
     /// See examples/deployment.toml to see how looks this field. Or refer to the unit test below
-    /// /!\ If an error occurred we consider that it might be because the field is missing. Hence we do nothing when there is an error
-    ///     The code will continue for the next case
     ///
     /// # Arguments
     /// * `mut self` - Self
@@ -83,14 +81,9 @@ impl Container {
     /// # Return
     /// Self
     fn set_envs(mut self, ast: &Value) -> Self {
-        if let Ok(res) = env::get_envs(ast) {
-            self.env = Some(res);
-        }
-
-        if let Ok(res) = env::get_env_from(ast) {
-            self.env_from = Some(res);
-        }
-
+        self.env = env::get_envs(ast);
+        self.env_from = env::get_env_from(ast);
+        
         self
     }
 
