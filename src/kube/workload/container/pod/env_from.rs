@@ -16,8 +16,12 @@ use crate::lib::parser::workload::env::EnvFrom;
 /// # Return
 /// Vec<EnvFromSource>
 pub fn get_env_source_from_envfrom(env: EnvFrom) -> Vec<EnvFromSource> {
-    let mut configmap_ref = env.map.into_iter()
-        .map(|name| EnvFromSource {
+    let mut map = Vec::new();
+    
+    if let Some(configmap) = env.map {
+        let mut map_res = configmap
+            .into_iter()
+            .map(|name| EnvFromSource {
             config_map_ref: Some(ConfigMapEnvSource {
                 name: Some(name),
                 optional: None
@@ -27,18 +31,24 @@ pub fn get_env_source_from_envfrom(env: EnvFrom) -> Vec<EnvFromSource> {
         })
         .collect::<Vec<EnvFromSource>>();
 
-    let mut secret_ref = env.secret.into_iter()
-        .map(|name | EnvFromSource {
-            config_map_ref: None,
-            secret_ref: Some(SecretEnvSource {
-                name: Some(name),
-                optional: None
-            }),
-            ..Default::default()
-        })
-        .collect::<Vec<EnvFromSource>>();
+        map.append(&mut map_res);
+    }
 
-    configmap_ref.append(&mut secret_ref);
+    if let Some(secret) = env.secret {
+        let mut env_res = secret
+            .into_iter()
+            .map(|name | EnvFromSource {
+                config_map_ref: None,
+                secret_ref: Some(SecretEnvSource {
+                    name: Some(name),
+                    optional: None
+                }),
+                ..Default::default()
+            })
+            .collect::<Vec<EnvFromSource>>();
+        
+        map.append(&mut env_res);
+    }
 
-    configmap_ref
+    map
 }

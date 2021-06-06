@@ -26,7 +26,6 @@ pub struct Extract {
     #[serde(rename(deserialize = "apiVersion"))]
     api_version: String,
     kind: String,
-    namespace: Option<String>,
     metadata: ObjectMeta
 }
 
@@ -109,8 +108,8 @@ async fn clear_dynamic_object(client: Client, content: &str, name: &str) -> Resu
     let gvk = get_gvk(&extract)?;
 
     // get & edit metadata
-    let ns = extract.namespace.unwrap_or_else(|| DEFAULT_NS.to_owned());
     let mut metadata = extract.metadata;
+    let ns = metadata.to_owned().namespace.unwrap_or_else(|| DEFAULT_NS.to_owned());
     metadata.managed_fields = Some(Vec::new());
     
     // create a Patch that remove the managedField metadata
@@ -157,6 +156,9 @@ pub async fn dry_run(content: &str) -> Result<String, KubeError> {
     
     // Extract some values from the yaml
     let extract: Extract = serde_yaml::from_str(content)?;
+    // get the namespace from the metadata
+    let metadata = extract.metadata.to_owned();
+    let ns = metadata.namespace.unwrap_or_else(|| DEFAULT_NS.to_owned());
 
     let json = serde_yaml::from_str::<Value>(content)?.to_string();
     let patch: Value = serde_json::from_str(&json)?;
@@ -169,7 +171,7 @@ pub async fn dry_run(content: &str) -> Result<String, KubeError> {
     // Retrieve the resource from the Cluster as a DynamicObject
     let d: Api<DynamicObject> = Api::namespaced_with(
         client.clone(), 
-        &extract.namespace.unwrap_or_else(|| DEFAULT_NS.to_owned()), 
+        &ns, 
         &gvk
     );
 
@@ -193,6 +195,7 @@ pub async fn dry_run(content: &str) -> Result<String, KubeError> {
     remove_unwanted_field_and_stringify(res)
 }
 
+// These tests need at least the deployment.toml from the examples folder to be deploy
 #[cfg(test)]
 mod tests {
     #[tokio::test]
@@ -202,9 +205,9 @@ mod tests {
         kind: Deployment
         metadata:
           labels:
-            name: rusty
+            name: nginx
             tier: backend
-          name: rusty
+          name: nginx
         spec:
           replicas: 5
         "#;
@@ -220,9 +223,9 @@ mod tests {
         kind: Deployment
         metadata:
           labels:
-            name: rusty
+            name: nginx
             tier: backend
-          name: rusty
+          name: nginx
         spec:
           replicas: foo
         "#;
@@ -240,9 +243,9 @@ mod tests {
             annotations:
               external-dns.alpha.kubernetes.io/hostname: rusty.dev.org.
             labels:
-              name: rusty
+              name: nginx
               tier: backend
-            name: rusty
+            name: nginx
         spec:
             ports:
                 - name: http

@@ -53,15 +53,21 @@ impl DeploymentWrapper {
         let parser_spec = object.spec.to_owned()
             .ok_or_else(|| KubeError::from(Error::MissingSpec))?;
 
-        let workload = parser_spec.workload?;
-        let spec = DeploymentSpec {
-            replicas: workload.replicas,
-            selector: common::get_label_selector_from_object(&object),
-            template: pod::get_pod_template_spec(workload, metadata),
-            ..Default::default()
-        };
+        if let Some(workload) = parser_spec.workload {
+            let spec = DeploymentSpec {
+                replicas: workload.replicas,
+                selector: common::get_label_selector_from_object(&object),
+                template: pod::get_pod_template_spec(workload, metadata),
+                ..Default::default()
+            };
 
-        self.workload.spec = Some(spec);
+            self.workload.spec = Some(spec);
+        }
+
+        if let Some(err) = parser_spec.error {
+            return Err(KubeError::from(err));
+        }
+
         Ok(self)
     }
 }
@@ -91,11 +97,12 @@ mod tests {
 
     #[test]
     fn create_deployment_from_object() {
-        let template = r"
+        let template = r#"
             kind = 'workload::deployment'
             name = 'rusty'
             version = 'apps/v1'
             metadata = { name = 'rusty', tier = 'backend' }
+            namespace = 'foo'
 
             [workload]
                 replicas = 3
@@ -103,7 +110,7 @@ mod tests {
                 [workload.rust]
                     image = 'foo'
                     tag = 'bar'
-        ";
+        "#;
 
         let object = get_parsed_objects(template).unwrap();
         let deployment = DeploymentWrapper::new(&object).set_spec(&object);
@@ -111,6 +118,7 @@ mod tests {
 
         let workload = deployment.unwrap().workload;
         assert_eq!(workload.metadata.labels.unwrap().get("name").unwrap(), "rusty");
+        assert_eq!(workload.metadata.namespace.unwrap(), "foo");
         assert!(workload.spec.is_some());
 
         let workload_spec = workload.spec.unwrap();

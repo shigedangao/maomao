@@ -50,7 +50,11 @@ impl IngressWrapper {
         }
 
         let s = object.spec.to_owned().unwrap();
-        if let Ok(network) = s.network {
+        if let Some(err) = s.error {
+            return Err(KubeError::from(err));
+        }
+
+        if let Some(network) = s.network {
             let spec = spec::get_ingress_spec(network.ingress);
             self.ingress.spec = spec;
         }

@@ -46,14 +46,14 @@ impl CustomCrd {
     /// # Return
     /// Result<Self, KubeError>
     fn set_spec(mut self, object: &Object) -> Result<Self, KubeError> {
-        if let Some(spec) = object.clone().spec {
-            if let Ok(crd) = spec.crd {
+        if let Some(spec) = object.spec.to_owned() {
+            if let Some(crd) = spec.crd {
                 self.spec = crd.spec;
 
                 return Ok(self);
             }
 
-            if let Err(err) = spec.crd {
+            if let Some(err) = spec.error {
                 return Err(KubeError::from(err));
             }
         }

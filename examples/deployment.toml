@@ -1,30 +1,31 @@
 # a deployment
 kind = "workload::deployment"
-name = "rusty"
-metadata = { name = "rusty", tier = "backend" }
+name = "nginx"
+metadata = { name = "nginx", tier = "backend" }
 
-# container name rust
+# container name nginx
 [workload]
     replicas = "$[replicas]"
 
-    [workload.rust]
-    image = "$[image_provider]/$[image_name]"
-    tag = "bar"
+    [workload.nginx]
+    image = "$[image_name]"
+    tag = "1.19.10"
     policy = "IfNotPresent"
 
         # env from
-        [workload.rust.env_from]
-        # map = "$[map::typed]"
-        # secret = [
-        #     "default_secret"
-        # ]
+        [workload.nginx.env_from]
+        map = "$[map::typed]"
+        secret = [
+            "nginx-secret"
+        ]
 
         # env
-        [workload.rust.env]
-        # from = [
-        #     "$[from::typed]",
-        #     { type = "res_field", name = "rust-container", item = "limits.cpu" }
-        # ]
+        [workload.nginx.env]
+        from = [
+            "$[from::typed]",
+            { type = "res_field", name = "nginx-container", item = "limits.cpu" }
+        ]
+    
         raw = [
             { name = "A_VALUE", item = "bar" }
         ]
