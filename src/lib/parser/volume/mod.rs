@@ -181,3 +181,43 @@ pub fn get_volumes_from_toml_tables(m: &Map<String, Value>) -> Result<HashMap<St
 
     Ok(volumes)
 }
+
+#[cfg(test)]
+mod tests {
+    use toml::Value;
+
+    #[test]
+    fn expect_to_parse_volume_claim() {
+        let template = r#"
+        [volume_claims]
+            [volume_claims.nginx]
+                access_modes = ["ReadWriteOnce"]
+                resources_request = [
+                    { key_name = "storage", value = "1Gi" }
+                ]
+        "#;
+
+        let ast = template.parse::<Value>().unwrap();
+        let map = ast.get("volume_claims").unwrap().as_table().unwrap();
+        let claims = super::get_volumes_from_toml_tables(map);
+
+        assert!(claims.is_ok());
+
+        let claims = claims.unwrap();
+        let nginx = claims.get("nginx");
+        assert!(nginx.is_some());
+
+        let nginx = nginx.unwrap();
+        let desc = nginx.description.to_owned().unwrap();
+        let acl = desc.access_modes.unwrap();
+        assert_eq!(acl.get(0).unwrap(), "ReadWriteOnce");
+
+        assert!(nginx.resources.is_some());
+        let resources = nginx.resources.to_owned().unwrap();
+        let requests = resources.request.unwrap();
+        let request_storage = requests.get("storage");
+
+        assert!(request_storage.is_some());
+        assert_eq!(request_storage.unwrap(), "1Gi");
+    }
+}

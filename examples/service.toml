@@ -3,6 +3,7 @@
 kind = "network::service"
 name = "nginx"
 metadata = { name = "nginx", tier = "backend" }
+namespace = "bar"
 
 [annotations]
 "external-dns.alpha.kubernetes.io/hostname" = "nginx.dev.org."

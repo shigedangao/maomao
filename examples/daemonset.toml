@@ -2,6 +2,7 @@
 kind = "workload::daemonset"
 name = "rusty"
 metadata = { name = "nodejs", tier = "monitoring" }
+namespace = "bar"
 
 # container name rust
 [workload]

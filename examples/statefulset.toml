@@ -1,47 +1,40 @@
 # a statefulset
 kind = "workload::statefulset"
-name = "nginx"
-metadata = { name = "nginx", tier = "backend" }
+name = "nginxst"
+metadata = { name = "nginxst", tier = "backend" }
+namespace = "bar"
 
 [volume_claims]
-    [volume_claims.rust]
-        access_modes = []
-        data_source = { name = "new-snapshot-test", kind = "VolumeSnapshot" }
-        resources_limit = [
-            { key_name = "key", value = "" }
-        ]
-        resource_request = [
-            { key_name = "key", value = "" }
+    [volume_claims.nginx]
+        access_modes = ["ReadWriteOnce"]
+        resources_request = [
+            { key_name = "storage", value = "1Gi" }
         ]
   
-# container name rust
+# container name nginx
 [workload]
-    replicas = 3
+    replicas = 1
           
-    [workload.rust]
-    image = "foo"
-    tag = "bar"
+    [workload.nginx]
+    image = "$[image_name]"
+    tag = "1.19.10"
     policy = "IfNotPresent"
     # name must match the table of the volume_claims
     volume_mounts = [
-        { name = "rust", mount_path = "" }
+        { name = "nginx", mount_path = "/var/log" }
     ]
 
         # env from
-        [workload.rust.env_from]
+        [workload.nginx.env_from]
         map = [
-            "default_configmap"
+            "nginx-configmap"
         ]
         secret = [
-            "default_secret"
+            "nginx-secret"
         ]
 
         # env
-        [workload.rust.env]
-        from = [
-            { type = "map", name = "foo", item = "lol" },
-            { type = "res_field", name = "rust-container", item = "limits.cpu" }
-        ]
+        [workload.nginx.env]
         raw = [
             { name = "A_VALUE", item = "bar" }
         ]

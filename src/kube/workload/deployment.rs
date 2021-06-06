@@ -97,11 +97,12 @@ mod tests {
 
     #[test]
     fn create_deployment_from_object() {
-        let template = r"
+        let template = r#"
             kind = 'workload::deployment'
             name = 'rusty'
             version = 'apps/v1'
             metadata = { name = 'rusty', tier = 'backend' }
+            namespace = 'foo'
 
             [workload]
                 replicas = 3
@@ -109,7 +110,7 @@ mod tests {
                 [workload.rust]
                     image = 'foo'
                     tag = 'bar'
-        ";
+        "#;
 
         let object = get_parsed_objects(template).unwrap();
         let deployment = DeploymentWrapper::new(&object).set_spec(&object);
@@ -117,6 +118,7 @@ mod tests {
 
         let workload = deployment.unwrap().workload;
         assert_eq!(workload.metadata.labels.unwrap().get("name").unwrap(), "rusty");
+        assert_eq!(workload.metadata.namespace.unwrap(), "foo");
         assert!(workload.spec.is_some());
 
         let workload_spec = workload.spec.unwrap();

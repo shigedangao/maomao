@@ -1,6 +1,7 @@
 kind = "network::ingress"
 name = "nginx"
 metadata = { name = "nginx", tier = "ingress" }
+namespace = "bar"
 
 [ingress]
 
@@ -19,10 +20,3 @@ metadata = { name = "nginx", tier = "ingress" }
                     type = "Prefix"
                     path = "/"
                     backend = { name = "nginx", port = 80 }
-
-    # [ingress.tls]
-        # hosts = [
-            # 'foo.bar.com',
-            # 'bar.com.capoo'
-        # ]
-        # secrets = 'foo-ssl-certificates'

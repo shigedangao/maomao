@@ -27,10 +27,18 @@ impl PvcWrapper {
     /// # Return
     /// Self
     fn new(parser_pvc: &parser::volume::VolumeClaimTemplates) -> Self {
-        let pvc = PersistentVolumeClaim {
-            metadata: ObjectMeta { annotations: Some(parser_pvc.metadata.to_owned()), ..Default::default() },
+        let metadata = parser_pvc.metadata.to_owned();
+        let mut pvc = PersistentVolumeClaim {
+            metadata: ObjectMeta {
+                annotations: Some(metadata.clone()),
+                ..Default::default()
+            },
             ..Default::default()
         };
+
+        if let Some(m) = metadata.get("name") {
+            pvc.metadata.name = Some(String::from(m));
+        }
 
         PvcWrapper {
             pvc

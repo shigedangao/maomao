@@ -2,6 +2,7 @@
 kind = "workload::deployment"
 name = "nginx"
 metadata = { name = "nginx", tier = "backend" }
+namespace = "bar"
 
 # container name nginx
 [workload]

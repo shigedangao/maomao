@@ -76,6 +76,7 @@ pub struct Object {
     pub kind: Kind,
     pub name: Option<String>,
     pub version: Option<String>,
+    pub namespace: Option<String>,
     
     pub metadata: BTreeMap<String, String>,
     pub annotations: Option<BTreeMap<String, String>>,
@@ -102,6 +103,7 @@ impl Object {
         let name = get_value_for_t_lax::<String>(ast, "name");
         let version = get_value_for_t_lax::<String>(ast, "version");
         let metadata = get_value_for_t::<BTreeMap<String, String>>(ast, "metadata")?;
+        let namespace = get_value_for_t_lax::<String>(ast, "namespace");
         let kind = Kind::convert(ast);
         
         Ok(Object {
@@ -109,6 +111,7 @@ impl Object {
             name,
             version,
             metadata,
+            namespace,
             annotations: None,
             spec: None,
             ..Default::default()
@@ -214,12 +217,13 @@ mod test {
     
     #[test]
     fn expect_parse_basic_metadata() {
-        let template = "
+        let template = r#"
             kind = 'workload::deployment'
             version = 'apps/v1'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
-        ";
+            namespace = 'bar'
+        "#;
 
         let object = super::get_parsed_objects(template);
         assert!(object.is_ok());
@@ -228,7 +232,8 @@ mod test {
         assert_eq!(object.name.unwrap(), "rusty");
         assert_eq!(object.version.unwrap(), "apps/v1");
         assert_eq!(object.metadata.get("tier").unwrap(), "backend");
-        assert_eq!(object.kind, super::Kind::Workload("deployment".to_owned()))
+        assert_eq!(object.kind, super::Kind::Workload("deployment".to_owned()));
+        assert_eq!(object.namespace.unwrap(), "bar");
     }
 
     #[test]
