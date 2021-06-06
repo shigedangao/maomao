@@ -1,12 +1,46 @@
-## Maomao
+## Maomao 🐱 (WIP)
 
-Just trying to convert TOML to Kubernetes YAML
+[![Rust](https://github.com/shigedangao/maomao/actions/workflows/rust.yml/badge.svg)](https://github.com/shigedangao/maomao/actions/workflows/rust.yml)
 
-## Command
+Convert TOML files to Kubernetes YAML spec ! 
 
-```bash
-cargo run generate -p <path> -o [OPTIONAl] <output_path> -m [OPTIONAL]
-cargo run diff -p <path>
+## Examples
+
+### Generate a deployment.yaml from a TOML template
+
+- Create a folder name **templates**
+- Within this folder create a file named **deployment.toml** within the **templates** folder.
+
+Copy paste the template below:
+
+```toml
+kind = "workload::deployment"
+name = "nginx"
+metadata = { name = "nginx", tier = "backend" }
+
+# container name nginx
+[workload]
+    replicas = 1
+
+    [workload.nginx]
+    image = "nginx"
+    tag = "1.19.10"
+    policy = "IfNotPresent"
+```
+
+- Generate the YAML spec by using the command below
+
+```shell
+cargo run generate -p templates > deployment.yaml && kubectl apply -f .
+```
+
+### Diff the templates by using the diff command
+
+- Edit the same **deployment.toml** by changing the *replicas* field to *5*
+- Check the diff by using the command below
+
+```toml
+cargo run diff -p templates
 ```
 
 ## Custom CRD

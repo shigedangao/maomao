@@ -4,25 +4,25 @@ use std::error::Error;
 use std::io::Error as IOError;
 
 #[derive(Debug)]
-pub enum TypeError {
-    Io(String),
-    Lib(String),
-    MissingArg(String),
-    MissingRes(String)
+pub enum TypeError<'a> {
+    Io(&'a str),
+    Lib(&'a str),
+    MissingArg(&'a str),
+    MissingRes(&'a str)
 }
 
-impl std::fmt::Display for TypeError {
+impl<'a> std::fmt::Display for TypeError<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TypeError::Io(msg) => write!(f, "An error occurred during I/O Operation: {}", msg),
             TypeError::Lib(msg) => write!(f, "An error occured with the parser library: {}", msg),
-            TypeError::MissingArg(msg) => write!(f, "Argument not found: {}", msg),
+            TypeError::MissingArg(msg) => write!(f, "The argument {} is missing", msg),
             TypeError::MissingRes(msg) => write!(f, "Missing result of: {}", msg)
         }
     }
 }
 
-impl Error for TypeError {}
+impl<'a> Error for TypeError<'a> {}
 
 /// CError
 ///
@@ -54,7 +54,7 @@ impl Error for CError {
     }    
 }
 
-impl From<TypeError> for CError {
+impl<'a> From<TypeError<'a>> for CError {
     fn from(err: TypeError) -> Self {
         CError {
             message: err.to_string()

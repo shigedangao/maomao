@@ -73,8 +73,6 @@ impl Container {
     /// - env
     /// - envFrom
     /// See examples/deployment.toml to see how looks this field. Or refer to the unit test below
-    /// /!\ If an error occurred we consider that it might be because the field is missing. Hence we do nothing when there is an error
-    ///     The code will continue for the next case
     ///
     /// # Arguments
     /// * `mut self` - Self
@@ -83,14 +81,9 @@ impl Container {
     /// # Return
     /// Self
     fn set_envs(mut self, ast: &Value) -> Self {
-        if let Ok(res) = env::get_envs(ast) {
-            self.env = Some(res);
-        }
-
-        if let Ok(res) = env::get_env_from(ast) {
-            self.env_from = Some(res);
-        }
-
+        self.env = env::get_envs(ast);
+        self.env_from = env::get_env_from(ast);
+        
         self
     }
 
@@ -305,13 +298,15 @@ mod test {
         assert!(container.env_from.is_some());
 
         let env_from = container.env_from.as_ref().unwrap();
-        assert!(!env_from.map.is_empty());
-        assert!(!env_from.secret.is_empty());
+        assert!(env_from.map.is_some());
+        assert!(env_from.secret.is_some());
 
-        let map = env_from.map.get(0).unwrap();
+        let map = env_from.map.to_owned().unwrap();
+        let map = map.get(0).unwrap();
         assert_eq!(map, "default_configmap");
 
-        let secret = env_from.secret.get(0).unwrap();
+        let secret = env_from.secret.to_owned().unwrap();
+        let secret = secret.get(0).unwrap();
         assert_eq!(secret, "default_secret");
     }
 

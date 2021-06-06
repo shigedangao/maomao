@@ -1,3 +1,3 @@
 pub mod generate;
 pub mod diff;
-mod helper;
+pub mod helper;

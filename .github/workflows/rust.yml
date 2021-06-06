@@ -15,9 +15,14 @@ jobs:
       with:
         cluster-name: "ramen"
         args: --agents 1
-    - name: Install app
-      run: kubectl apply -f ci/app.yaml
     - name: Build
       run: cargo build --verbose
+    - name: Generate spec from the examples folder
+      run: cargo run generate -p examples -o ./out
+    - name: Install kubernetes yaml spec from the out folder
+      working-directory: out
+      run: |
+        kubectl create ns bar
+        kubectl apply -f .
     - name: Run tests
       run: cargo test --verbose

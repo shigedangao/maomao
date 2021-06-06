@@ -1,7 +1,8 @@
 # a daemonset
 kind = "workload::daemonset"
 name = "rusty"
-metadata = { name = "rusty-elasticsearch", tier = "monitoring" }
+metadata = { name = "nodejs", tier = "monitoring" }
+namespace = "bar"
 
 # container name rust
 [workload]
@@ -10,16 +11,7 @@ metadata = { name = "rusty-elasticsearch", tier = "monitoring" }
         { key = "node-role.kubernetes.io/master", effect = "NoSchedule" }
     ]
 
-    [workload.rust]
-    image = "foo"
-    tag = "bar"
+    [workload.nodejs]
+    image = "k8s.gcr.io/echoserver"
+    tag = "1.4"
     policy = "IfNotPresent"
-
-        # env from
-        [workload.rust.env_from]
-        map = [
-            "default_configmap"
-        ]
-        secret = [
-            "default_secret"
-        ]

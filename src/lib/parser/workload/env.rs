@@ -1,9 +1,5 @@
 use toml::Value;
 use std::convert::From;
-use crate::lib::helper::error::{
-    LError,
-    workload::Error
-};
 use crate::lib::helper::toml::{
     get_value_for_t,
     get_value_for_t_lax
@@ -21,8 +17,8 @@ const ENV_FROM_SECRET_KEYNAME: &str = "secret";
 
 #[derive(Debug, Default, Clone)]
 pub struct EnvFrom {
-    pub map: Vec<String>,
-    pub secret: Vec<String>
+    pub map: Option<Vec<String>>,
+    pub secret: Option<Vec<String>>
 }
 
 #[derive(Debug, Default, Clone)]
@@ -88,33 +84,30 @@ impl EnvRefKey {
 /// * `ast` - &Value
 ///
 /// # Return
-/// Result<Env, LError>
-pub fn get_envs(ast: &Value) -> Result<Env, LError> {
-    let envs = ast.get(ENV_NAME)
-        .ok_or_else(|| LError::from(Error::EnvFieldNotFound(ENV_NAME)))?
-        .as_table()
-        .ok_or_else(|| LError::from(Error::EnvFieldMalformatted(ENV_NAME)))?;
+/// Option<Env>
+pub fn get_envs(ast: &Value) -> Option<Env> {
+    let envs = ast.get(ENV_NAME).as_ref()?.as_table()?;
+    let mut env = Env::default();
     
     // retrieve the map table from toml 
     // [workload.<container>.env]
     // from = [ {...EnvRefKey struct fields } ]
-    let from = envs.get(ENV_KEYNAME_FROM)
-        .ok_or_else(|| LError::from(Error::KeyNotFound(ENV_KEYNAME_FROM)))?
-        .as_array()
-        .ok_or_else(|| LError::from(Error::KeyNotArray(ENV_KEYNAME_FROM)))?;
+    if let Some(from) = envs.get(ENV_KEYNAME_FROM) {
+        if let Some(from_array) = from.as_array() {
+            env.from = EnvRefKey::from_vec(from_array.to_owned());
+        }
+    }
 
     // retrieve the map table from toml 
     // [workload.<container>.env]
     // raw = [ {...EnvRefKey struct fields } ]
-    let raw = envs.get(ENV_KEYNAME_RAW)
-        .ok_or_else(|| LError::from(Error::KeyNotFound(ENV_KEYNAME_RAW)))?
-        .as_array()
-        .ok_or_else(|| LError::from(Error::KeyNotArray(ENV_KEYNAME_RAW)))?;
-
-    Ok(Env {
-        from: EnvRefKey::from_vec(from.to_owned()),
-        raw: EnvRefKey::from_vec(raw.to_owned())
-    })
+    if let Some(raw) = envs.get(ENV_KEYNAME_RAW) {
+        if let Some(raw_array) = raw.as_array() {
+            env.raw = EnvRefKey::from_vec(raw_array.to_owned());
+        }
+    }
+    
+    Some(env)
 }
 
 /// Get Env From
@@ -131,27 +124,23 @@ pub fn get_envs(ast: &Value) -> Result<Env, LError> {
 /// * `ast` - &Value
 ///
 /// # Return
-/// Result<EnvFrom, LError>
-pub fn get_env_from(ast: &Value) -> Result<EnvFrom, LError> {
-    let envs_from = ast.get(ENV_FROM_NAME)
-        .ok_or_else(|| LError::from(Error::EnvFieldNotFound(ENV_FROM_NAME)))?
-        .as_table()
-        .ok_or_else(|| LError::from(Error::EnvFieldMalformatted(ENV_FROM_NAME)))?;
+/// Option<EnvFrom>
+pub fn get_env_from(ast: &Value) -> Option<EnvFrom> {
+    let envs_from = ast.get(ENV_FROM_NAME).as_ref()?.as_table()?;
+    let mut res = EnvFrom::default();
 
     // retrieve the map table from toml 
     // [workload.<container>.env_from]
     // map = [...]
-    let map = envs_from.get(ENV_FROM_MAP_KEYNAME)
-        .ok_or_else(|| LError::from(Error::EnvFieldNotFound(ENV_FROM_MAP_KEYNAME)))?;
-
+    if let Some(configmap)= envs_from.get(ENV_FROM_MAP_KEYNAME) {
+        res.map = Some(Vec::convert(configmap));
+    }
     // retrieve the map table from toml 
     // [workload.<container>.env_from]
     // secret = [...]
-    let secret = envs_from.get(ENV_FROM_SECRET_KEYNAME)
-        .ok_or_else(|| LError::from(Error::KeyNotFound(ENV_FROM_SECRET_KEYNAME)))?;
+    if let Some(secret) = envs_from.get(ENV_FROM_SECRET_KEYNAME) {
+        res.secret = Some(Vec::convert(secret));
+    }
 
-    Ok(EnvFrom {
-        map: Vec::convert(map),
-        secret: Vec::convert(secret)
-    })
+    Some(res)
 }
