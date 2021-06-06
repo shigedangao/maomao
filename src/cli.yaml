@@ -23,16 +23,16 @@ subcommands:
       args:
         - path:
             short: p
-            about: path of the toml templates
+            about: Path of the folder containg the TOML files
             takes_value: true
         - output:
             short: o
-            about: destination folder
+            about: Destination folder to output the YAML files
             required: false
             takes_value: true
         - merge:
             short: m
-            about: return the yaml output in a single file
+            about: Return a single YAML file
             required: false
             takes_value: false
   - diff:
@@ -49,5 +49,5 @@ subcommands:
       args:
         - path:
             short: p
-            about: path of the toml templates
+            about: Path of the folder containg the TOML files
             takes_value: true

@@ -1,7 +1,6 @@
 kind = "env::map"
 name = "nginx-configmap"
 metadata = { name = "nginx-configmap", tier = "backend" }
-namespace = "bar"
 
 [data]
     foo = "bbtea"

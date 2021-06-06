@@ -14,11 +14,10 @@ fn main() {
     let res = match matches.subcommand() {
         Some(("generate", args)) => cli::generate::run(args),
         Some(("diff", args)) => cli::diff::run(args),
-        _ => app.print_help()
-                .map_err(|err| CError::from(err))
+        _ => app.print_help().map_err(CError::from)
     };
 
     if let Err(err) = res {
-        println!("{} an error occurred: {}", color::Fg(color::Red), err.message);
+        println!("{}❌ Something went wrong: {}", color::Fg(color::Red), err.message);
     }
 }

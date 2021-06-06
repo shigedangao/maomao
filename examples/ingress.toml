@@ -1,7 +1,6 @@
 kind = "network::ingress"
 name = "nginx"
 metadata = { name = "nginx", tier = "ingress" }
-namespace = "bar"
 
 [ingress]
 
