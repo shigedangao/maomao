@@ -18,7 +18,7 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Generate spec from the examples folder
-      run: cargo run maomao generate -p examples -o ./out
+      run: cargo run generate -p examples -o ./out
     - name: Install kubernetes yaml spec from the out folder
       working-directory: out
       run: |
