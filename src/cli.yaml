@@ -1,10 +1,22 @@
-name: maomao
+name: maomao 🐱
 version: "0.1"
-author: "Marc I. <marc.inthaamnouay@gmail.com>"
-about: Generate kubernetes conf from TOML
+author: "Marc Intha-amnouay @shigedangao"
+about: Maomao 🐱 - Generate kubernetes yaml spec from TOML files
 subcommands:
   - generate:
-      about: Generate Kubernetes template from TOML template
+      about: |
+        Generate kubernetes YAML objects from TOML files. Several options are available:
+
+        [Examples]
+
+        - maomao generate -p <TOML files folder> -o <target dest folder>
+            ➡️ Output kubernetes YAML spec into multiple files
+        - maomao generate -p <TOML files folder> -o <file path> -m
+            ➡️ Output kubernetes YAML spec in a single file
+        - maomao generate -p <TOML files folder>
+            ➡️ Output kubernetes YAML spec in the terminal
+
+        For more information, check the readme at https://github.com/shigedangao/maomao
       version: "v0.1"
       short: g
       long: generate
@@ -24,7 +36,13 @@ subcommands:
             required: false
             takes_value: false
   - diff:
-      about: Diff kubernetes generated YAML from TOML template with the cluster
+      about: | 
+        Generate GitHub style diff between your TOML files and the Kubernetes cluster
+
+        [Examples]
+
+        - maomao diff -p <TOML files folder>
+            ➡️ Output a GitHub diff between the local TOML files and the cluster
       version: "v0.1"
       short: d
       long: diff
