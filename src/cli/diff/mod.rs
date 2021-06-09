@@ -5,14 +5,16 @@ use similar::{ChangeTag, TextDiff};
 use termion::color;
 use crate::cli::helper::error::{
     CError,
-    TypeError
+    TypeError,
 };
+use crate::cli::helper::logger::{Logger, LogLevel};
 use crate::kube::{
     dry,
     helper::error::KubeError
 };
 
 const ARG_PATH: &str = "path";
+const ARG_QUIET: &str = "quiet";
 
 /// Run
 ///
@@ -28,16 +30,21 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     let path = args.value_of(ARG_PATH)
         .ok_or_else(|| CError::from(TypeError::MissingArg(ARG_PATH)))?;
 
-    let generated_yaml = super::generate::template_variables(path)?;
+    let quiet = args.is_present(ARG_QUIET);
+    let logger = Logger::new(quiet);
+
+    let generated_yaml = super::generate::generate_yaml_from_toml(path, &logger)?;
 
     // generate a runtime in order to get the dry_run values
+    logger.print(LogLevel::Warning("Beginning to check generated Kubernetes YAML spec with Kubernetes cluster..."));
     let rt = Runtime::new()?;
-    let res = rt.block_on(trigger_dry_run(generated_yaml.clone()))
+    let res = rt.block_on(trigger_dry_run(generated_yaml.clone(), &logger))
         .map_err(|err| CError { message: err.message })?;
 
     // compare the spec
     // generate diff for each files
     for (name, content) in res {
+        logger.print(LogLevel::Info(&format!("🔎 Diff file {}.toml", name)));
         let original_spec = generated_yaml.get(&name)
             .ok_or_else(|| CError::from(
                 TypeError::MissingRes("Unable to get the YAML spec")
@@ -66,9 +73,10 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
 ///
 /// # Return
 /// impl Future<Output = Result<HashMap<String, String>, KubeError>>
-async fn trigger_dry_run(yaml: HashMap<String, String>) -> Result<HashMap<String, String>, KubeError> {
+async fn trigger_dry_run(yaml: HashMap<String, String>, logger: &Logger) -> Result<HashMap<String, String>, KubeError> {
     let mut dr = HashMap::new();
     for (name, content) in yaml {
+        logger.print(LogLevel::Info(&format!("🪞 Dry-running template {}.toml with Kubernetes cluster", name)));
         let res = dry::dry_run(&content).await;
         if let Err(err) = res {
             return Err(err);

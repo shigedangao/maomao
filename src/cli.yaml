@@ -35,6 +35,10 @@ subcommands:
             about: Return a single YAML file
             required: false
             takes_value: false
+        - quiet:
+            short: q
+            about: Disable processing logs
+            required: false
   - diff:
       about: | 
         Generate GitHub style diff between your TOML files and the Kubernetes cluster
@@ -51,3 +55,7 @@ subcommands:
             short: p
             about: Path of the folder containg the TOML files
             takes_value: true
+        - quiet:
+            short: q
+            about: Disable processing logs
+            required: false

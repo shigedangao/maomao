@@ -4,7 +4,10 @@ use crate::cli::helper::error::{
     CError,
     TypeError
 };
-use crate::cli::helper::io;
+use crate::cli::{
+    helper::io,
+    helper::logger::{Logger, LogLevel}
+};
 use crate::lib::{
     parser,
     vars
@@ -15,6 +18,7 @@ use crate::kube;
 const ARG_PATH: &str = "path";
 const ARG_OUTPUT: &str = "output";
 const ARG_MERGE: &str = "merge";
+const ARG_QUIET: &str = "quiet";
 
 /// Run
 ///
@@ -32,8 +36,11 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
 
     let output = args.value_of(ARG_OUTPUT);
     let merge = args.is_present(ARG_MERGE);
+    let quiet = args.is_present(ARG_QUIET);
 
-    let generated_yaml = template_variables(path)?;
+    // generate logger based on quiet
+    let logger = Logger::new(quiet);
+    let generated_yaml = generate_yaml_from_toml(path, &logger)?;
     let stitched_yaml = generated_yaml
         .clone()
         .into_iter()
@@ -43,10 +50,22 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
 
     if let Some(output_path) = output {
         if !merge {
-            return io::write_multiple_files(output_path, generated_yaml);
+            return match io::write_multiple_files(output_path, generated_yaml) {
+                Ok(()) => {
+                    logger.print(LogLevel::Success(&format!("Successfully generate Kubernetes template to {}", output_path)));
+                    Ok(())
+                },
+                Err(err) => Err(err)
+            }
         }
 
-        return io::write_file(output_path, &stitched_yaml);
+        return match io::write_file(output_path, &stitched_yaml) {
+            Ok(()) => {
+                logger.print(LogLevel::Success(&format!("Successfully generate Kubernetes template to {}", output_path)));
+                Ok(())
+            },
+            Err(err) => Err(err)
+        }
     }
 
     // Otherwise print on the console
@@ -55,7 +74,7 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     Ok(())
 }
 
-/// Template Variables
+/// Generate Yaml From Toml
 ///
 /// # Description
 /// Replace variables by _vars.toml value in TOML template
@@ -65,17 +84,22 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
 ///
 /// # Return
 /// Result<HashMap<String, String>, CError>
-pub fn template_variables(path: &str) -> Result<HashMap<String, String>, CError> {
+pub fn generate_yaml_from_toml(path: &str, logger: &Logger) -> Result<HashMap<String, String>, CError> {
     let (templates, variables) = io::read_files_to_string(path)?;
     let mut generated_yaml = HashMap::new();
 
     for (name, tmpl) in templates {
+        logger.print(LogLevel::Info(&format!("⚙️ Processing template {}.toml", name)));
+
+        logger.print(LogLevel::Info("💅 Templating template with variables"));
         let updated_templates = vars::replace_variables(tmpl.as_str(), &variables)
             .map_err(|err| CError::from(TypeError::Lib(&err.message)))?;
         
+        logger.print(LogLevel::Info("⚙️ Parsing template"));
         let res = parser::get_parsed_objects(updated_templates.as_str())
             .map_err(|err| CError::from(TypeError::Lib(&err.message)))?;
 
+        logger.print(LogLevel::Info("✍️ Generate Kubernetes YAML spec"));
         let yaml = kube::generate_yaml(res)
             .map_err(|err| CError::from(TypeError::Lib(&err.message)))?;
 
