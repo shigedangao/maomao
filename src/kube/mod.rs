@@ -1,5 +1,6 @@
 pub mod workload;
 pub mod dry;
+pub mod diff;
 pub mod helper;
 
 mod network;

@@ -31,7 +31,7 @@ metadata = { name = "nginx", tier = "backend" }
 - Generate the YAML spec by using the command below
 
 ```shell
-cargo run generate -p templates > deployment.yaml && kubectl apply -f .
+cargo run generate -p templates -q > deployment.yaml && kubectl apply -f .
 ```
 
 ### Diff the templates by using the diff command
@@ -39,8 +39,22 @@ cargo run generate -p templates > deployment.yaml && kubectl apply -f .
 - Edit the same **deployment.toml** by changing the *replicas* field to *5*
 - Check the diff by using the command below
 
-```toml
-cargo run diff -p templates
+```shell
+cargo run diff -p <path>
+```
+
+### Verify the templates
+
+If you wish to check whenever the templates are valid you can run this command
+
+```shell
+cargo run verify -p <path>
+```
+
+If the template has not been deployed then you can run this command
+
+```shell
+cargo run verify -p <path> -u
 ```
 
 ## Custom CRD
