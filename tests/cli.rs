@@ -101,3 +101,32 @@ fn expect_to_run_diff_run() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+#[test]
+fn expect_to_run_verify() -> Result<(), Box<dyn Error>> {
+    let mut cmd = Command::cargo_bin("maomao")?;
+
+    cmd
+        .arg("verify")
+        .arg("-p")
+        .arg("examples/diff");
+
+    cmd.assert().success();
+
+    Ok(())
+}
+
+#[test]
+fn expect_to_run_verify_create_dry() -> Result<(), Box<dyn Error>> {
+    let mut cmd = Command::cargo_bin("maomao")?;
+
+    cmd
+        .arg("verify")
+        .arg("-p")
+        .arg("examples/dry")
+        .arg("-u");
+
+    cmd.assert().success();
+
+    Ok(())
+}

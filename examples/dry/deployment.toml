@@ -1,0 +1,13 @@
+# a deployment
+kind = "workload::deployment"
+name = "node"
+metadata = { name = "node", tier = "backend" }
+
+# container name nginx
+[workload]
+    replicas = "2"
+
+    [workload.nginx]
+    image = "k8s.gcr.io/echoserver"
+    tag = "1.4"
+    policy = "IfNotPresent"

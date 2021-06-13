@@ -74,3 +74,38 @@ pub async fn get_current_spec(content: &str) -> Result<String, KubeError> {
 
     Ok(yaml)
 }
+
+#[cfg(test)]
+mod tests {
+    #[tokio::test]
+    async fn expect_to_retrieve_spec() {
+        let yaml = r#"
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+            labels:
+                name: nginx
+                tier: backend
+            name: nginx
+        "#;
+
+        let spec = super::get_current_spec(yaml).await;
+        assert!(spec.is_ok());
+    }
+
+    #[tokio::test]
+    async fn expect_to_not_retrieve_spec() {
+        let yaml = r#"
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+            labels:
+                name: foo
+                tier: backend
+            name: foo
+        "#;
+
+        let spec = super::get_current_spec(yaml).await;
+        assert!(spec.is_err());
+    }
+}
