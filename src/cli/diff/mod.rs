@@ -13,6 +13,7 @@ use crate::kube::{
     helper::error::KubeError
 };
 
+// Constant
 const ARG_PATH: &str = "path";
 const ARG_QUIET: &str = "quiet";
 
@@ -76,13 +77,10 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
 async fn get_existing_spec(yaml: HashMap<String, String>, logger: &Logger) -> Result<HashMap<String, String>, KubeError> {
     let mut dr = HashMap::new();
     for (name, content) in yaml {
-        let res = diff::get_current_spec(&content).await;
-        if let Err(err) = res {
-            return Err(err);
-        }
-        
+        let res = diff::get_current_spec(&content).await?;
+    
         logger.print(LogLevel::Info(&format!("🪞 Spec retrieved for {}.toml", name)));
-        dr.insert(name.to_owned(), res.unwrap().to_owned());
+        dr.insert(name.to_owned(), res);
     }
 
     Ok(dr)

@@ -1,5 +1,6 @@
 use kube::{Client, Api};
 use kube::api::DynamicObject;
+use std::collections::BTreeMap;
 use crate::kube::helper::error::{
     KubeError,
     dry_run::Error as KubeRuntimeError
@@ -10,7 +11,21 @@ use super::common::{
     parse_kube_error
 };
 
+// Constant
 const DEFAULT_NS: &str = "default";
+
+// Annotation constant that need to be remove
+const K8S_REVISION: &str = "deployment.kubernetes.io/revision";
+const KUBECTL_LAST_CONFIG: &str = "kubectl.kubernetes.io/last-applied-configuration";
+
+/// Clean Annotations
+///
+/// # Arguments
+/// * `annotatuons` - &mut BTreeMap<String, String>
+fn clean_annotations(annotations: &mut BTreeMap<String, String>) {
+    annotations.remove(K8S_REVISION);
+    annotations.remove(KUBECTL_LAST_CONFIG);
+}
 
 /// Get Current Spec
 ///
@@ -49,6 +64,11 @@ pub async fn get_current_spec(content: &str) -> Result<String, KubeError> {
     res.data["status"].take();
     res.metadata.uid.take();
     res.metadata.resource_version.take();
+    res.metadata.creation_timestamp.take();
+    
+    if let Some(annotations) = res.metadata.annotations.as_mut() {
+        clean_annotations(annotations);    
+    }
     
     let yaml = serde_yaml::to_string(&res)?;
 

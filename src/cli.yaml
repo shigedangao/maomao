@@ -59,3 +59,25 @@ subcommands:
             short: q
             about: Disable processing logs
             required: false
+  - verify:
+      about: |
+        Testing TOML files with the Kubernetes cluster in order to check whenever the templates are valid
+
+        [Examples]
+        - maomao verify -p <TOML files folder>
+      version: "v0.1"
+      short: v
+      long: verify
+      args:
+        - path:
+            short: p
+            about: Path of the folder containg the TOML files
+            takes_value: true
+        - unreleased:
+            short: u
+            about: Allow to dry run unreleased spec
+            required: false
+        - quiet:
+            short: q
+            about: Disable processing logs
+            required: false

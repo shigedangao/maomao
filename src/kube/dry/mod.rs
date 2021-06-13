@@ -1,6 +1,5 @@
-// @TODO implement a "dry-run cmd" by reusing this mod
 use serde_json::Value;
-use kube::api::{Api, DynamicObject, Patch, PatchParams, ResourceExt};
+use kube::api::{Api, DynamicObject, Patch, PatchParams, PostParams};
 use kube::Client;
 use super::common::{
     Extract,
@@ -12,33 +11,9 @@ use super::helper::error::{
     dry_run::Error
 };
 
-
 // Constant
 const PATCH_PARAM_MANAGER: &str = "maomao";
 const DEFAULT_NS: &str = "default";
-
-/// Remove unwanted field and Stringify
-///
-/// # Description
-/// Remove field that we don't want to diff and return a YAML value
-///
-/// # Arguments
-/// * `res` - DynamicObject
-///
-/// # Return
-/// Result<String, KubeError>
-fn remove_unwanted_field_and_stringify(mut res: DynamicObject) -> Result<String, KubeError> {
-    res.data["status"].take();
-    res.metadata.managed_fields.take();
-    res.metadata.creation_timestamp.take();
-    res.metadata.resource_version.take();
-    res.metadata.uid.take();
-    res.metadata.generation.take();
-    res.resource_version().take();
-    
-    let yaml = serde_yaml::to_string(&res)?;
-    Ok(yaml)
-}  
 
 /// Clear Dynamic Object
 ///
@@ -104,7 +79,7 @@ async fn clear_dynamic_object(client: Client, content: &str, name: &str) -> Resu
 ///
 /// # Return
 /// Result<String, KubeError>
-pub async fn dry_run(content: &str) -> Result<String, KubeError> {
+pub async fn dry_run(content: &str) -> Result<(), KubeError> {
     let client = Client::try_default()
         .await
         .map_err(|err| KubeError { message: err.to_string() })?;
@@ -131,12 +106,9 @@ pub async fn dry_run(content: &str) -> Result<String, KubeError> {
     );
 
     // get the name from the metadata
-    let name = extract.metadata.name;
-    if name.is_none() {
-        return Err(KubeError::from(Error::MissingSpecName));
-    }
+    let name = extract.metadata.name
+        .ok_or_else(|| KubeError::from(Error::MissingSpecName))?;
 
-    let name = name.unwrap();
     let res = d.patch(&name, &patch_params, &patch)
         .await
         .map_err(parse_kube_error)?;
@@ -147,7 +119,41 @@ pub async fn dry_run(content: &str) -> Result<String, KubeError> {
         clear_dynamic_object(client, content, &name).await?;
     }
     
-    remove_unwanted_field_and_stringify(res)
+    Ok(())
+}
+
+/// Dry Run Create
+///
+/// # Description
+/// Dry Run the TOML template but only used during the creation of the TOML template
+///
+/// # Arguments
+/// * `content` - &str
+///
+/// # Return
+/// Result<(), KubeError> 
+pub async fn dry_run_create(content: &str) -> Result<(), KubeError> {
+    let client = Client::try_default()
+        .await
+        .map_err(|err| KubeError { message: err.to_string() })?;
+
+    // Extract some values from the yaml
+    let extract: Extract = serde_yaml::from_str(content)?;
+    let gvk = get_gvk(&extract)?;
+    let ns = extract.metadata.namespace
+        .unwrap_or_else(|| DEFAULT_NS.to_owned());
+
+    let d: Api<DynamicObject> = Api::namespaced_with(client, &ns, &gvk);
+    let mut pp = PostParams::default();
+    pp.dry_run = true;
+
+    let value: DynamicObject = serde_yaml::from_str(content)?;
+
+    d.create(&pp, &value)
+        .await
+        .map_err(parse_kube_error)?;
+    
+    Ok(())
 }
 
 // These tests need at least the deployment.toml from the examples folder to be deploy
@@ -231,5 +237,60 @@ mod tests {
         let msg = res.unwrap_err();
 
         assert!(msg.message.contains("code: 404"));
+    }
+
+    #[tokio::test]
+    async fn expect_to_dry_run_unreleased() {
+        let yaml = r#"     
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+            labels:
+                name: nginx
+                tier: backend
+            name: nginx-unreleased
+        spec:
+            replicas: 5
+            selector:
+                matchLabels:
+                    name: nginx
+                    tier: backend
+            template:
+                metadata:
+                    labels:
+                        name: nginx
+                        tier: backend
+                spec:
+                    containers:
+                        - name: nginx
+                          image: nginx
+                          imagePullPolicy: Always   
+        "#;
+
+        let res = super::dry_run_create(yaml).await;
+        println!("{:?}", res);
+        assert!(res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn expect_to_not_dry_run_unreleased() {
+        let yaml = r#"     
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              labels:
+                name: nginx
+                tier: backend
+              name: nginx-error
+            spec:
+              replicas: 5
+              containers:
+                - name: nginx
+                  image: nginx
+                  imagePullPolicy: Foo   
+        "#;
+
+        let res = super::dry_run_create(yaml).await;
+        assert!(res.is_err());
     }
 }
