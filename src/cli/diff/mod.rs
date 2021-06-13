@@ -9,7 +9,7 @@ use crate::cli::helper::error::{
 };
 use crate::cli::helper::logger::{Logger, LogLevel};
 use crate::kube::{
-    dry,
+    diff,
     helper::error::KubeError
 };
 
@@ -19,7 +19,10 @@ const ARG_QUIET: &str = "quiet";
 /// Run
 ///
 /// # Description
-/// Diff generated TOML template with the Kubernetes APIServer
+/// Diff generated TOML template with the cluster
+///     - Convert the TOML to YAML
+///     - Get existing spec & convert to YAML
+///     - Diff the generated YAML with the one from the Server
 ///
 /// # Arguments
 /// * `args` - &ArgMatches
@@ -36,9 +39,9 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     let generated_yaml = super::generate::generate_yaml_from_toml(path, &logger)?;
 
     // generate a runtime in order to get the dry_run values
-    logger.print(LogLevel::Warning("Beginning to check generated Kubernetes YAML spec with Kubernetes cluster..."));
+    logger.print(LogLevel::Warning("Retrieving existing spec from the cluster..."));
     let rt = Runtime::new()?;
-    let res = rt.block_on(trigger_dry_run(generated_yaml.clone(), &logger))
+    let res = rt.block_on(get_existing_spec(generated_yaml.clone(), &logger))
         .map_err(|err| CError { message: err.message })?;
 
     // compare the spec
@@ -50,7 +53,7 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
                 TypeError::MissingRes("Unable to get the YAML spec")
             ))?;
 
-        let diff = TextDiff::from_lines(original_spec,&content);
+        let diff = TextDiff::from_lines(&content,original_spec);
         for change in diff.iter_all_changes() {
             match change.tag() {
                 ChangeTag::Insert => print!("{}+{}", color::Fg(color::Green), change),
@@ -63,25 +66,22 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     Ok(())
 }
 
-/// Trigger Dry Run
-///
-/// # Description
-/// Trigger the dry run by processing each template asynchronously
+/// Get existing spec
 ///
 /// # Arguments
 /// * `yaml` - HashMap<String, String>
 ///
 /// # Return
 /// impl Future<Output = Result<HashMap<String, String>, KubeError>>
-async fn trigger_dry_run(yaml: HashMap<String, String>, logger: &Logger) -> Result<HashMap<String, String>, KubeError> {
+async fn get_existing_spec(yaml: HashMap<String, String>, logger: &Logger) -> Result<HashMap<String, String>, KubeError> {
     let mut dr = HashMap::new();
     for (name, content) in yaml {
-        logger.print(LogLevel::Info(&format!("🪞 Dry-running template {}.toml with Kubernetes cluster", name)));
-        let res = dry::dry_run(&content).await;
+        let res = diff::get_current_spec(&content).await;
         if let Err(err) = res {
             return Err(err);
         }
         
+        logger.print(LogLevel::Info(&format!("🪞 Spec retrieved for {}.toml", name)));
         dr.insert(name.to_owned(), res.unwrap().to_owned());
     }
 

@@ -1,68 +1,21 @@
-use serde::Deserialize;
+// @TODO implement a "dry-run cmd" by reusing this mod
 use serde_json::Value;
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use kube::api::{
-    Api,
-    Patch,
-    PatchParams,
-    GroupVersionKind,
-    DynamicObject
-};
+use kube::api::{Api, DynamicObject, Patch, PatchParams, ResourceExt};
 use kube::Client;
+use super::common::{
+    Extract,
+    get_gvk,
+    parse_kube_error
+};
 use super::helper::error::{
     KubeError,
     dry_run::Error
 };
 
-mod util;
 
 // Constant
-const API_VERSION_SEPARATOR: &str = "/";
 const PATCH_PARAM_MANAGER: &str = "maomao";
 const DEFAULT_NS: &str = "default";
-
-#[derive(Deserialize)]
-pub struct Extract {
-    #[serde(rename(deserialize = "apiVersion"))]
-    api_version: String,
-    kind: String,
-    metadata: ObjectMeta
-}
-
-/// Get Gvk
-///
-/// # Description
-/// Retrieve a GroupVersionKind which will be used to generate a DynamicObject
-///
-/// # Arguments
-/// * `extract` - &Extract
-///
-/// # Return
-/// Result<GroupVersionKind, KubeError>
-fn get_gvk(extract: &Extract) -> Result<GroupVersionKind, KubeError> {
-    // split the apiVersion to retrieve the apiGroup and the version
-    // Usually it's represent by <apigroup>/<version>
-    let args: Vec<&str> = extract.api_version.split(API_VERSION_SEPARATOR).collect();
-    // Retrieve the api_group and the version
-    let api_group = args.get(0);
-    let api_version = args.get(1);
-
-    if let (Some(group), Some(version)) = (api_group, api_version) {
-        let gvk = GroupVersionKind::gvk(group, version, &extract.kind)
-            .map_err(util::parse_kube_error)?;
-            
-        return Ok(gvk)
-    }
-
-    if let Some(group) = api_group {
-        let gvk = GroupVersionKind::gvk("", group, &extract.kind)
-            .map_err(util::parse_kube_error)?;
-        
-        return Ok(gvk);
-    }
-    
-    Err(KubeError::from(Error::MissingApiVersion))
-}
 
 /// Remove unwanted field and Stringify
 ///
@@ -80,6 +33,8 @@ fn remove_unwanted_field_and_stringify(mut res: DynamicObject) -> Result<String,
     res.metadata.creation_timestamp.take();
     res.metadata.resource_version.take();
     res.metadata.uid.take();
+    res.metadata.generation.take();
+    res.resource_version().take();
     
     let yaml = serde_yaml::to_string(&res)?;
     Ok(yaml)
@@ -89,7 +44,7 @@ fn remove_unwanted_field_and_stringify(mut res: DynamicObject) -> Result<String,
 ///
 /// # Description
 /// /!\ Usually with Patch merge the managedField should be cleared. However it appear that sometimes
-/// the managedField is still present which is not ideal for future diff. This method make sure
+/// the managedField is sti:?ll present which is not ideal for future diff. This method make sure
 /// to reset the managedField by setting an empty Vec to the metadata.namanged_field
 /// See https://kubernetes.io/docs/reference/using-api/server-side-apply/#clearing-managedfields
 ///
@@ -123,7 +78,7 @@ async fn clear_dynamic_object(client: Client, content: &str, name: &str) -> Resu
     let dynamic: Api<DynamicObject> = Api::namespaced_with(client, &ns, &gvk);
     let res = dynamic.patch(name, &pp, &patch)
         .await
-        .map_err(util::parse_kube_error)?;
+        .map_err(parse_kube_error)?;
 
     if res.metadata.managed_fields.is_some() {
         return Err(KubeError::from(Error::RemoveManagedField(name)));
@@ -184,7 +139,7 @@ pub async fn dry_run(content: &str) -> Result<String, KubeError> {
     let name = name.unwrap();
     let res = d.patch(&name, &patch_params, &patch)
         .await
-        .map_err(util::parse_kube_error)?;
+        .map_err(parse_kube_error)?;
 
     // clear the managed_field in case if it's not already done
     if res.metadata.managed_fields.is_some() {
