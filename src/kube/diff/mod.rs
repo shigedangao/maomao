@@ -7,7 +7,7 @@ use crate::kube::helper::error::{
 };
 use super::common::{
     Extract,
-    get_gvk,
+    get_api_resource,
     parse_kube_error
 };
 
@@ -45,8 +45,8 @@ pub async fn get_current_spec(content: &str) -> Result<String, KubeError> {
     // parse the generated yaml file
     let extract: Extract = serde_yaml::from_str(content)?;
     
-    // get the dynamic group
-    let gvk = get_gvk(&extract)?;
+    // get ApiResource
+    let api_res = get_api_resource(&extract)?;
     
     // retrieve the name & namespace 
     let ns = extract.metadata.namespace
@@ -55,7 +55,7 @@ pub async fn get_current_spec(content: &str) -> Result<String, KubeError> {
     let name = extract.metadata.name
         .ok_or_else(|| KubeError::from(KubeRuntimeError::MissingSpecName))?;
         
-    let dynamic: Api<DynamicObject> = Api::namespaced_with(client, &ns, &gvk);
+    let dynamic: Api<DynamicObject> = Api::namespaced_with(client, &ns, &api_res);
     let mut res = dynamic.get(&name)
         .await
         .map_err(parse_kube_error)?;

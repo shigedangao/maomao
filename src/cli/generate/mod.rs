@@ -89,7 +89,7 @@ pub fn generate_yaml_from_toml(path: &str, logger: &Logger) -> Result<HashMap<St
     let mut generated_yaml = HashMap::new();
 
     for (name, tmpl) in templates {
-        logger.print(LogLevel::Info(&format!("⚙️ Processing template {}.toml", name)));
+        logger.print(LogLevel::Info(&format!("⚙️ Processing template `{}`.toml", name)));
 
         logger.print(LogLevel::Info("💅 Templating template with variables"));
         let updated_templates = vars::replace_variables(tmpl.as_str(), &variables)

@@ -12,10 +12,27 @@ pub enum LogLevel<'a> {
 }
 
 impl Logger {
+    /// New
+    ///
+    /// # Description
+    /// Create a new logger with the quiet mode
+    ///
+    /// # Arguments
+    /// * `quiet` - bool
+    ///
+    /// # Return
+    /// Logger
     pub fn new(quiet: bool) -> Logger {
         Logger { quiet }
     } 
 
+    /// Print
+    ///
+    /// # Description
+    /// Print a msg
+    ///
+    /// # Arguments
+    /// * `level` - LogLevel
     pub fn print(&self, level: LogLevel) {
         if self.quiet {
            return;

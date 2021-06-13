@@ -45,10 +45,10 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
     for (name, dry_res) in res.into_iter() {
         match dry_res {
             Ok(_) => {
-                logger.print(LogLevel::Success(&format!("Template {} is valid ✅", name)));
+                logger.print(LogLevel::Success(&format!("✅ Template `{}` is valid", name)));
             },
             Err(err) => {
-                logger.print(LogLevel::Warning(&format!("Template {} is not valid ⚠️", name)));
+                logger.print(LogLevel::Warning(&format!("⚠️ Template `{}` is not valid", name)));
                 logger.print(LogLevel::Warning(&err.message));
             }
         }
@@ -70,7 +70,7 @@ pub fn run(args: &ArgMatches) -> Result<(), CError> {
 async fn dry_run_specs(specs: &HashMap<String, String>, unreleased: bool) -> Result<HashMap<String, Result<(), KubeError>>, KubeError> {
     let mut m = HashMap::new();
     
-    for (name, content) in specs.into_iter() {
+    for (name, content) in specs.iter() {
         if unreleased{
             let res = dry::dry_run_create(content).await;
             m.insert(name.to_owned(), res);

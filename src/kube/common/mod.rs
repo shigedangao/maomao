@@ -4,6 +4,7 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::{
     LabelSelector,
 };
 use kube::api::GroupVersionKind;
+use kube::core::ApiResource;
 use kube::error::Error;
 use crate::lib::parser::Object;
 use super::helper::error::{
@@ -86,17 +87,17 @@ pub fn get_label_selector_from_object(object: &Object) -> LabelSelector {
     }
 }
 
-/// Get Gvk
+/// Get ApiResource
 ///
 /// # Description
-/// Retrieve a GroupVersionKind which will be used to generate a DynamicObject
+/// Retrieve a ApiResource which will be used to generate a DynamicObject
 ///
 /// # Arguments
 /// * `extract` - &Extract
 ///
 /// # Return
-/// Result<GroupVersionKind, KubeError>
-pub fn get_gvk(extract: &Extract) -> Result<GroupVersionKind, KubeError> {
+/// Result<ApiResource, KubeError>
+pub fn get_api_resource(extract: &Extract) -> Result<ApiResource, KubeError> {
     // split the apiVersion to retrieve the apiGroup and the version
     // Usually it's represent by <apigroup>/<version>
     let args: Vec<&str> = extract.api_version.split(API_VERSION_SEPARATOR).collect();
@@ -105,17 +106,17 @@ pub fn get_gvk(extract: &Extract) -> Result<GroupVersionKind, KubeError> {
     let api_version = args.get(1);
 
     if let (Some(group), Some(version)) = (api_group, api_version) {
-        let gvk = GroupVersionKind::gvk(group, version, &extract.kind)
-            .map_err(parse_kube_error)?;
+        let gvk = GroupVersionKind::gvk(group, version, &extract.kind);
+        let api_res = ApiResource::from_gvk(&gvk);
             
-        return Ok(gvk)
+        return Ok(api_res)
     }
 
     if let Some(group) = api_group {
-        let gvk = GroupVersionKind::gvk("", group, &extract.kind)
-            .map_err(parse_kube_error)?;
+        let gvk = GroupVersionKind::gvk("", group, &extract.kind);
+        let api_res = ApiResource::from_gvk(&gvk);
         
-        return Ok(gvk);
+        return Ok(api_res);
     }
     
     Err(KubeError::from(DryRunError::MissingApiVersion))

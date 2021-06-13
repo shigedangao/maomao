@@ -3,7 +3,7 @@ use kube::api::{Api, DynamicObject, Patch, PatchParams, PostParams};
 use kube::Client;
 use super::common::{
     Extract,
-    get_gvk,
+    get_api_resource,
     parse_kube_error
 };
 use super::helper::error::{
@@ -34,8 +34,8 @@ async fn clear_dynamic_object(client: Client, content: &str, name: &str) -> Resu
     let extract: Extract = serde_yaml::from_str(content)?;
     // get the patch params
     let pp = PatchParams::apply(PATCH_PARAM_MANAGER);
-    // get the gvk
-    let gvk = get_gvk(&extract)?;
+    // get the api_res
+    let api_res = get_api_resource(&extract)?;
 
     // get & edit metadata
     let mut metadata = extract.metadata;
@@ -50,7 +50,7 @@ async fn clear_dynamic_object(client: Client, content: &str, name: &str) -> Resu
     });
 
     let patch = Patch::Merge(patch_json);
-    let dynamic: Api<DynamicObject> = Api::namespaced_with(client, &ns, &gvk);
+    let dynamic: Api<DynamicObject> = Api::namespaced_with(client, &ns, &api_res);
     let res = dynamic.patch(name, &pp, &patch)
         .await
         .map_err(parse_kube_error)?;
@@ -96,13 +96,13 @@ pub async fn dry_run(content: &str) -> Result<(), KubeError> {
 
     // patch params define the way the patch will be run
     let patch_params = PatchParams::apply(PATCH_PARAM_MANAGER).dry_run();
-    let gvk = get_gvk(&extract)?;
+    let api_res = get_api_resource(&extract)?;
 
     // Retrieve the resource from the Cluster as a DynamicObject
     let d: Api<DynamicObject> = Api::namespaced_with(
         client.clone(), 
         &ns, 
-        &gvk
+        &api_res
     );
 
     // get the name from the metadata
@@ -139,14 +139,12 @@ pub async fn dry_run_create(content: &str) -> Result<(), KubeError> {
 
     // Extract some values from the yaml
     let extract: Extract = serde_yaml::from_str(content)?;
-    let gvk = get_gvk(&extract)?;
+    let api_res = get_api_resource(&extract)?;
     let ns = extract.metadata.namespace
         .unwrap_or_else(|| DEFAULT_NS.to_owned());
 
-    let d: Api<DynamicObject> = Api::namespaced_with(client, &ns, &gvk);
-    let mut pp = PostParams::default();
-    pp.dry_run = true;
-
+    let d: Api<DynamicObject> = Api::namespaced_with(client, &ns, &api_res);
+    let pp = PostParams { dry_run: true, ..Default::default() };
     let value: DynamicObject = serde_yaml::from_str(content)?;
 
     d.create(&pp, &value)
