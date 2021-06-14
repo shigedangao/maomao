@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  tests:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: AbsaOSS/k3d-action@v1.4.0
+      name: "Create single cluster"
+      with:
+        cluster-name: "ramen"
+        args: --agents 1
+    - name: Build
+      run: cargo build
+    - name: Generate spec from the examples folder
+      run: cargo run generate -p examples -o ./out
+    - name: Install kubernetes yaml spec from the out folder
+      working-directory: out
+      run: |
+        kubectl create ns bar
+        kubectl apply -f .
+    - name: Run tests
+      run: cargo test --verbose
+
+  release-osx:
+    runs-on: macos-latest
+    needs: tests
+    steps:
+      - name: create artifact repo
+        run: mkdir -p path/to/artifact
+      - name: build maomao release
+        run: cargo build --release
+      - name: zip maomao
+        run: zip maomao-osx.zip target/release/maomao
+      - name: upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: maomao-osx.zip
+          path: path/to/artifact/maomao-osx.zip
+
+  release-linux:
+    runs-on: ubuntu-20.04
+    needs: tests
+    steps:
+    - name: build maomao release
+      run: cargo build --release
+    - name: zip maomao
+      run: zip maomao-amd64.zip target/release/maomao
+    - name: download osx release from artifact
+      use: actions/download-artifact@v2
+      with:
+        name: maomao-osx.zip
+    - name: create release
+      uses: marvinpinto/action-automatic-releases@latest
+      id: create_release
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        draft: true
+        title: Maomao pre-release
+        files: |
+          - maomao-amd64.zip
+          - maomao-osx.zip
