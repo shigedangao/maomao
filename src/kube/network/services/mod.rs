@@ -58,7 +58,7 @@ impl ServiceWrapper {
 
         if let Some(service) = network.service {
             let mut service_spec = spec::get_service_spec(service);
-            service_spec.selector = Some(object.metadata.to_owned());
+            service_spec.selector = object.metadata.to_owned();
             self.service.spec = Some(service_spec);
         }
 
@@ -85,6 +85,7 @@ pub fn get_service_from_object(object: Object) -> Result<String, KubeError> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::lib::parser::get_parsed_objects;
     use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
 
@@ -112,19 +113,19 @@ mod tests {
         ";
 
         let object = get_parsed_objects(template).unwrap();
-        let service = super::ServiceWrapper::new(&object).set_spec(&object);
+        let service = ServiceWrapper::new(&object).set_spec(&object);
         assert!(service.is_ok());
 
         let service = service.unwrap().service;
-        assert_eq!(service.metadata.labels.unwrap().get("name").unwrap(), "rusty");
+        assert_eq!(service.metadata.labels.get("name").unwrap(), "rusty");
 
-        let annotations = service.metadata.annotations.unwrap();
+        let annotations = service.metadata.annotations;
         assert_eq!(annotations.get("external-dns.alpha.kubernetes.io/hostname").unwrap(), "rusty.dev.org.");
 
         let spec = service.spec.unwrap();
         assert_eq!(spec.type_.unwrap(), "NodePort");
         
-        let ports = spec.ports.as_ref().unwrap().get(0).unwrap();
+        let ports = spec.ports.get(0).unwrap();
         assert_eq!(ports.name.as_ref().unwrap(), "http");
         assert_eq!(ports.port, 80);
         assert_eq!(ports.target_port.as_ref().unwrap(), &IntOrString::Int(90));

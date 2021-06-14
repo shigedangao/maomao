@@ -52,7 +52,7 @@ jobs:
     - name: zip maomao
       run: zip maomao-amd64.zip target/release/maomao
     - name: download osx release from artifact
-      use: actions/download-artifact@v2
+      uses: actions/download-artifact@v2
       with:
         name: maomao-osx.zip
     - name: create release

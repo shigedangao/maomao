@@ -7,6 +7,10 @@ use k8s_openapi::api::core::v1::{
     VolumeMount
 };
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+use crate::lib::parser::{
+    Object,
+    affinity::Affinity as ParserAffinity
+};
 use crate::lib::parser::workload::{
     Workload,
     Container as ParserContainer,
@@ -16,35 +20,10 @@ use crate::lib::parser::workload::{
 
 mod env;
 mod env_from;
+mod affinity;
 
 struct PodSpecWrapper {
     spec: PodSpec
-}
-
-/// Get Pod Template Spec
-///
-/// # Description
-/// Create a k8s_openapi::api::core::v1::PodTemplateSpec
-///
-/// # Arguments
-/// * `workload` - Workload
-/// * `metadata` - ObjectMetadata
-///
-/// # Return
-/// k8s_openapi::api::core::v1::PodTemplateSpec
-pub fn get_pod_template_spec(workload: Workload, metadata: ObjectMeta) -> PodTemplateSpec {
-    let mut template = PodTemplateSpec {
-        metadata: Some(metadata),
-        spec: None
-    };
-
-    let wrapper = PodSpecWrapper::new()
-        .set_containers(workload.containers)
-        .set_tolerations(workload.tolerations);
-
-    template.spec = Some(wrapper.spec);
-    
-    template
 }
 
 impl PodSpecWrapper {
@@ -100,7 +79,27 @@ impl PodSpecWrapper {
             .map(Toleration::from)
             .collect::<Vec<Toleration>>();
 
-        self.spec.tolerations = Some(tolerations);
+        self.spec.tolerations = tolerations;
+
+        self
+    }
+
+    /// Set Affinity
+    ///
+    /// # Description
+    /// Set the affinity to a PodSpec
+    ///
+    /// # Arguments
+    /// * `mut self` - Self
+    /// * `aff` - Option<Affinity>
+    ///
+    /// # Return
+    /// Self
+    fn set_affinity(mut self, aff: Option<ParserAffinity>) -> Self {
+        if let Some(af) = aff {
+            let affinity_wrapper = affinity::AffinityWrapper::new().set_node_affinity(&af);
+            self.spec.affinity = Some(affinity_wrapper.affinity);
+        }
 
         self
     }
@@ -121,11 +120,11 @@ impl From<ParserContainer> for Container {
             let mut raw_env = env::get_env_vars(env.raw);
             from_env.append(&mut raw_env);
 
-            container.env = Some(from_env);
+            container.env = from_env;
         }
 
         if let Some(env) = c.env_from {
-            container.env_from = Some(env_from::get_env_source_from_envfrom(env));
+            container.env_from = env_from::get_env_source_from_envfrom(env);
         }
 
         if let Some(volume_mounts) = c.volume_mounts {
@@ -134,7 +133,7 @@ impl From<ParserContainer> for Container {
                 .map(VolumeMount::from)
                 .collect::<Vec<VolumeMount>>();
 
-            container.volume_mounts = Some(mounts);
+            container.volume_mounts = mounts;
         }
 
         container
@@ -162,4 +161,31 @@ impl From<ParserVolumeMount> for VolumeMount {
             ..Default::default()
         }
     }
+}
+
+/// Get Pod Template Spec
+///
+/// # Description
+/// Create a k8s_openapi::api::core::v1::PodTemplateSpec
+///
+/// # Arguments
+/// * `workload` - Workload
+/// * `metadata` - ObjectMetadata
+///
+/// # Return
+/// k8s_openapi::api::core::v1::PodTemplateSpec
+pub fn get_pod_template_spec(workload: Workload, object: &Object, metadata: ObjectMeta) -> PodTemplateSpec {
+    let mut template = PodTemplateSpec {
+        metadata: Some(metadata),
+        spec: None
+    };
+
+    let wrapper = PodSpecWrapper::new()
+        .set_containers(workload.containers)
+        .set_tolerations(workload.tolerations)
+        .set_affinity(object.affinity.to_owned());
+
+    template.spec = Some(wrapper.spec);
+    
+    template
 }

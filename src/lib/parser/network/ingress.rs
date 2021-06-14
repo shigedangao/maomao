@@ -6,7 +6,6 @@ use crate::lib::helper::error::{
 };
 use crate::lib::helper::toml::{
     get_value_for_t,
-    get_value_for_t_from,
     get_value_for_t_lax
 };
 use crate::lib::helper::conv::Convert;
@@ -116,7 +115,7 @@ impl Ingress {
             return Ok(self)
         }
 
-        let default = get_value_for_t_from::<backend::Backend>(default.unwrap(), "backend");
+        let default = get_value_for_t::<backend::Backend>(default.unwrap(), "backend");
         if let Ok(d) = default {
             self.default = Some(d)
         }
@@ -180,7 +179,7 @@ impl From<Value> for IngressHTTPPath {
             return IngressHTTPPath {
                 kind,
                 path,
-                backend: backend::Backend::from(backend_ast.to_owned())
+                backend: backend::Backend::convert(backend_ast)
             }
         }
 

@@ -1,4 +1,4 @@
-## Maomao 🐱 (WIP)
+## Maomao 🐱
 
 [![Rust](https://github.com/shigedangao/maomao/actions/workflows/rust.yml/badge.svg)](https://github.com/shigedangao/maomao/actions/workflows/rust.yml)
 

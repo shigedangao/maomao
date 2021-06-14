@@ -1,7 +1,6 @@
 use k8s_openapi::api::core::v1::ConfigMap;
 use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::ByteString;
-use std::collections::BTreeMap;
 use crate::lib::parser::Object;
 use crate::kube::helper::error::{
     KubeError,
@@ -51,14 +50,12 @@ impl EnvWrapper {
         let env = spec.env.unwrap();
         if let Some(d) = env.data {
             if env.binary {
-                let bin: BTreeMap<String, ByteString> = d
+                configmap.binary_data = d
                     .into_iter()
                     .map(|(k, v)| (k, ByteString(v.as_bytes().to_vec())))
                     .collect();
-
-                configmap.binary_data = Some(bin);
             } else {
-                configmap.data = Some(d);
+                configmap.data = d;
             }
         }
 
@@ -95,12 +92,10 @@ impl EnvWrapper {
 
         let env = spec.env.unwrap();
         if let Some(d) = env.data {
-            let bin: BTreeMap<String, ByteString> = d
+            secret.data = d
                 .into_iter()
                 .map(|(k, v)| (k, ByteString(v.as_bytes().to_vec())))
                 .collect();
-
-            secret.data = Some(bin);
         }
 
         self.secret = Some(secret);
@@ -139,6 +134,7 @@ pub fn get_env_from_object(object: Object, kind: String) -> Result<String, KubeE
 #[cfg(test)]
 mod tests {
     use crate::lib::parser::get_parsed_objects;
+    use super::*;
 
     #[test]
     fn expect_to_create_configmap() {
@@ -156,15 +152,15 @@ mod tests {
 
         let object = get_parsed_objects(template).unwrap();
         // create the wrapper here
-        let env = super::EnvWrapper::new().set_configmap(&object);
+        let env = EnvWrapper::new().set_configmap(&object);
         assert!(env.is_ok());
 
         let env = env.unwrap();
         assert!(env.configmap.is_some());
 
         let configmap = env.configmap.unwrap();
-        assert!(configmap.data.is_some());
-        assert!(configmap.binary_data.is_none());
+        assert!(!configmap.data.is_empty());
+        assert!(configmap.binary_data.is_empty());
     }
 
     #[test]
@@ -184,15 +180,15 @@ mod tests {
 
         let object = get_parsed_objects(template).unwrap();
         // create the wrapper here
-        let env = super::EnvWrapper::new().set_configmap(&object);
+        let env = EnvWrapper::new().set_configmap(&object);
         assert!(env.is_ok());
 
         let env = env.unwrap();
         assert!(env.configmap.is_some());
 
         let configmap = env.configmap.unwrap();
-        assert!(configmap.data.is_none());
-        assert!(configmap.binary_data.is_some());
+        assert!(configmap.data.is_empty());
+        assert!(!configmap.binary_data.is_empty());
     }
 
     #[test]
@@ -211,14 +207,14 @@ mod tests {
 
         let object = get_parsed_objects(template).unwrap();
         // create the wrapper here
-        let env = super::EnvWrapper::new().set_secret(&object);
+        let env = EnvWrapper::new().set_secret(&object);
         assert!(env.is_ok());
 
         let env = env.unwrap();
         assert!(env.secret.is_some());
 
         let secret = env.secret.unwrap();
-        assert!(secret.data.is_some());
+        assert!(!secret.data.is_empty());
     }
 
     #[test]
@@ -237,7 +233,7 @@ mod tests {
         "#;
 
         let object = get_parsed_objects(template).unwrap();
-        let res = super::get_env_from_object(object, "map".to_owned());
+        let res = get_env_from_object(object, "map".to_owned());
         assert!(res.is_ok());
     }
 
@@ -256,7 +252,7 @@ mod tests {
         "#;
 
         let object = get_parsed_objects(template).unwrap();
-        let res = super::get_env_from_object(object, "secret".to_owned());
+        let res = get_env_from_object(object, "secret".to_owned());
         assert!(res.is_ok());
     }
 }

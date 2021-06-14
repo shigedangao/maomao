@@ -51,9 +51,9 @@ pub fn get_ingress_spec(ingress: Option<Ingress>) -> Option<IngressSpec> {
 ///
 /// # Return
 /// Option<Vec<IngressRule>>
-fn get_ingress_rules(ingress: &Ingress) -> Option<Vec<IngressRule>> {
+fn get_ingress_rules(ingress: &Ingress) -> Vec<IngressRule> {
     if let Some(rules) = ingress.rules.to_owned() {
-        let r = rules
+        return rules
             .into_iter()
             .map(|rule| IngressRule {
                 host: Some(rule.host),
@@ -62,11 +62,9 @@ fn get_ingress_rules(ingress: &Ingress) -> Option<Vec<IngressRule>> {
                 })
             })
             .collect::<Vec<IngressRule>>();
-
-        return Some(r);
     }
     
-    None
+    Vec::new()
 }
 
 /// Get Tls Rules
@@ -79,17 +77,17 @@ fn get_ingress_rules(ingress: &Ingress) -> Option<Vec<IngressRule>> {
 ///
 /// # Return
 /// Option<Vec<IngressTLS>>
-fn get_tls_rules(ingress: &Ingress) -> Option<Vec<IngressTLS>> {
+fn get_tls_rules(ingress: &Ingress) -> Vec<IngressTLS> {
     if let Some(t) = ingress.tls.to_owned() {
         let tls = IngressTLS {
-            hosts: t.hosts,
+            hosts: t.hosts.unwrap_or_default(),
             secret_name: t.secrets
         };
         
-        return Some(vec![tls]);
+        return vec![tls];
     }
 
-    None
+    Vec::new()
 }
 
 /// Get HTTP Ingress Paths
