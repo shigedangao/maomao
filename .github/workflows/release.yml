@@ -31,17 +31,17 @@ jobs:
     runs-on: macos-latest
     needs: tests
     steps:
-      - name: create artifact repo
-        run: mkdir -p path/to/artifact
-      - name: build maomao release
-        run: cargo build --release
-      - name: zip maomao
-        run: zip maomao-osx.zip target/release/maomao
-      - name: upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: maomao-osx.zip
-          path: path/to/artifact/maomao-osx.zip
+    - name: create artifact repo
+      run: mkdir -p path/to/artifact
+    - name: build maomao release
+      run: cargo build --release
+    - name: zip maomao
+      run: zip maomao-osx.zip target/release/maomao
+    - name: upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: maomao-osx.zip
+        path: path/to/artifact/maomao-osx.zip
 
   release-linux:
     runs-on: ubuntu-20.04
