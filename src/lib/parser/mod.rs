@@ -1,3 +1,4 @@
+pub mod affinity;
 pub mod network;
 pub mod workload;
 pub mod volume;
@@ -82,6 +83,7 @@ pub struct Object {
     pub annotations: Option<BTreeMap<String, String>>,
     pub spec: Option<spec::Spec>,
 
+    pub affinity: Option<affinity::Affinity>,
     pub volume_claim: Option<HashMap<String, volume::VolumeClaimTemplates>>
 }
 
@@ -184,6 +186,23 @@ impl Object {
 
         self
     }
+
+    /// Set Affinity
+    ///
+    /// # Arguments
+    /// * `mut self`
+    /// * `ast` - &Value
+    ///
+    /// # Return
+    /// self
+    fn set_affinity(mut self, ast: &Value) -> Self {
+        let affinity = ast.get("affinity");
+        if let Some(aff) = affinity {
+            self.affinity = affinity::get_affinity_from_ast(aff);
+        }
+
+        self
+    }
 }
 
 /// Get Parsed Objects
@@ -205,6 +224,7 @@ pub fn get_parsed_objects(tmpl: &str) -> Result<Object, LError> {
     let object = Object::new(&ast)?
         .set_annotations(&ast)
         .set_volumes(&ast)
+        .set_affinity(&ast)
         .set_spec(&ast);
 
     Ok(object)

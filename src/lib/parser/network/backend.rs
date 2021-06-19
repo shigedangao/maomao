@@ -1,5 +1,5 @@
 use toml::Value;
-use std::convert::From;
+use crate::lib::helper::conv::Convert;
 use crate::lib::helper::toml::get_value_for_t;
 
 #[derive(Debug, Default, Clone)]
@@ -15,8 +15,8 @@ pub struct Resource {
     name: String
 }
 
-impl From<Value> for Backend {
-    fn from(data: Value) -> Self {
+impl Convert for Backend {
+    fn convert(data: &Value) -> Self {
         let name = get_value_for_t::<String>(&data, "name").unwrap_or_default();
         let port = get_value_for_t::<i64>(&data, "port").unwrap_or(80);
 
