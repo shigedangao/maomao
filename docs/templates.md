@@ -7,7 +7,7 @@ Template need to be located in a folder. The CLI support basics Kubernetes objec
 - service & ingress
 - crd
 
-All of them shared some basics informations which are
+All of them shared the same common information which are
 
 ```toml
 kind = "workload::<type>"
@@ -84,25 +84,49 @@ You can find some CRD example by clicking on this [link](https://github.com/shig
 
 For basic network objects. The CLI support service & ingress. You can find examples of definitions by clicking on this [link](https://github.com/shigedangao/maomao/tree/master/examples)
 
-## Crd 
+**Service**
 
-The CLI also support CRD. What it does is that the CLI will do a simple TOML convertion to YAML. Common annotation could still be used.
-
-CRD use a special type of kind which always begin by the 
+Below is the generic syntax for a Service
 
 ```toml
-kind = "custom::<type of resources>"
+kind = "network::service"
+name = "nginx"
+metadata = { name = "nginx", tier = "backend" }
+
+[service]
+    type = "<Type of service>"
+
+    [service.ports]
+
+        [service.ports.<name>]
+            protocol = <string>
+            port = <container port>
+            target_port = <outbound port>
 ```
 
-Below is an example of the GKE's ManagedCertificate CRD
+**Ingress**
+
+Below is the generic syntax for an Ingress resource
 
 ```toml
-kind = "custom::ManagedCertificate"
-version = "networking.gke.io/v1"
-metadata = { name = "rusty-certificate" }
+kind = "network::ingress"
+name = "nginx"
+metadata = { name = "nginx", tier = "ingress" }
 
-[spec]
-    domains = ["foo.co.kr", "foo.co.tw", "foo.co.fr"]
+[ingress]
+
+    [ingress.default]
+        backend = { name = "<service name>", port = "<service target port>" }
+
+    [ingress.rules]
+
+        [ingress.rules.<name>]
+            host = "<hostname>"
+
+            [ingress.rules.<name>.paths]
+
+                [ingress.rules.<name>.paths.0]
+                    type = "<string>"
+                    path = "/"
+                    backend = { name = "<service name>", port = "<service target port>" }
 ```
-
-You can find some CRD example by clicking on this [link](https://github.com/shigedangao/maomao/tree/master/examples/crd)
