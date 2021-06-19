@@ -23,7 +23,7 @@ pub fn get_service_spec(service: Service) -> ServiceSpec {
     let ports = get_service_ports(&service);
     ServiceSpec {
         type_: Some(service.kind),
-        ports,
+        ports: ports.unwrap_or_default(),
         ..Default::default()
     }
 }
@@ -39,7 +39,7 @@ pub fn get_service_spec(service: Service) -> ServiceSpec {
 /// # Return
 /// Option<Vec<ServicePort>>
 pub fn get_service_ports(service: &Service) -> Option<Vec<ServicePort>> {
-    let ports_map =service.ports.as_ref()?;
+    let ports_map = service.ports.as_ref()?;
     let ports = ports_map.to_owned()
         .into_iter()
         .map(|(name, port)| {

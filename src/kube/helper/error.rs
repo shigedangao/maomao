@@ -65,7 +65,7 @@ impl From<common::Error> for KubeError {
     }
 }
 
-impl<'a> From<dry_run::Error<'a>> for KubeError {
+impl From<dry_run::Error> for KubeError {
     fn from(err: dry_run::Error) -> Self {
         KubeError { message: err.to_string() }
     }
@@ -92,18 +92,16 @@ pub mod dry_run {
     use std::fmt;
 
     #[derive(Debug)]
-    pub enum Error<'a> {
+    pub enum Error {
         MissingApiVersion,
-        MissingSpecName,
-        RemoveManagedField(&'a str)
+        MissingSpecName
     }
 
-    impl<'a> fmt::Display for Error<'a> {
+    impl<'a> fmt::Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 Error::MissingApiVersion => write!(f, "apiVersion is either missing or malformatted from the spec"),
                 Error::MissingSpecName => write!(f, "`name` could not be founded in the metadata"),
-                Error::RemoveManagedField(name) => write!(f, "Something went wrong when updating the metadata. Check the status of metadata.managedField for {}", name)
             }
         }
     }

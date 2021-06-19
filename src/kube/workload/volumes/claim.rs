@@ -30,7 +30,7 @@ impl PvcWrapper {
         let metadata = parser_pvc.metadata.to_owned();
         let mut pvc = PersistentVolumeClaim {
             metadata: ObjectMeta {
-                annotations: Some(metadata.clone()),
+                annotations: metadata.clone(),
                 ..Default::default()
             },
             ..Default::default()
@@ -62,7 +62,7 @@ impl PvcWrapper {
         };
 
         if let Some(desc) = parser_pvc.description.to_owned() {
-            spec.access_modes = desc.access_modes;
+            spec.access_modes = desc.access_modes.unwrap_or_default();
             spec.storage_class_name = desc.class_name;
             spec.volume_mode = desc.mode;
             spec.volume_name = desc.name;

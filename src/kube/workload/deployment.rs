@@ -57,7 +57,7 @@ impl DeploymentWrapper {
             let spec = DeploymentSpec {
                 replicas: workload.replicas,
                 selector: common::get_label_selector_from_object(&object),
-                template: pod::get_pod_template_spec(workload, metadata),
+                template: pod::get_pod_template_spec(workload, object, metadata),
                 ..Default::default()
             };
 
@@ -92,8 +92,7 @@ pub fn get_deployment_from_object(object: &Object) -> Result<String, KubeError> 
 #[cfg(test)]
 mod tests {
     use crate::lib::parser::get_parsed_objects;
-
-    use super::DeploymentWrapper;
+    use super::*;
 
     #[test]
     fn create_deployment_from_object() {
@@ -117,7 +116,7 @@ mod tests {
         assert!(deployment.is_ok());
 
         let workload = deployment.unwrap().workload;
-        assert_eq!(workload.metadata.labels.unwrap().get("name").unwrap(), "rusty");
+        assert_eq!(workload.metadata.labels.get("name").unwrap(), "rusty");
         assert_eq!(workload.metadata.namespace.unwrap(), "foo");
         assert!(workload.spec.is_some());
 
@@ -125,7 +124,7 @@ mod tests {
         assert_eq!(workload_spec.replicas.unwrap(), 3);
 
         let spec_metadata = workload_spec.template.metadata.unwrap();
-        assert_eq!(spec_metadata.labels.unwrap().get("name").unwrap(), "rusty");
+        assert_eq!(spec_metadata.labels.get("name").unwrap(), "rusty");
 
         let pod_spec = workload_spec.template.spec.unwrap();
         let container = pod_spec.containers.get(0);
@@ -135,7 +134,6 @@ mod tests {
 
         assert_eq!(rust.image.to_owned().unwrap(), "foo:bar");
         assert!(rust.image_pull_policy.is_none());
-        assert!(rust.env.is_none());
     }
 
     #[test]
@@ -171,7 +169,7 @@ mod tests {
         let container = pod.containers.get(0).unwrap();
 
         assert_eq!(container.name, "rust");
-        let env = container.env.to_owned().unwrap();
+        let env = container.env.to_owned();
         let from_configmap = env.get(0).unwrap();
         assert_eq!(from_configmap.name, "foo");
         assert!(from_configmap.value.is_none());
@@ -220,7 +218,7 @@ mod tests {
         let container = pod.containers.get(0).unwrap();
 
         assert_eq!(container.name, "node");
-        let env_from = container.env_from.to_owned().unwrap();
+        let env_from = container.env_from.to_owned();
         let map = env_from.get(0).unwrap();
         assert!(map.config_map_ref.is_some());
         assert!(map.secret_ref.is_none());

@@ -83,6 +83,7 @@ pub fn get_ingress_from_object(object: Object) -> Result<String, KubeError> {
 #[cfg(test)]
 mod tests {
     use crate::lib::parser::get_parsed_objects;
+    use super::*;
 
     #[test]
     fn expect_to_parse_ingress() {
@@ -118,22 +119,22 @@ mod tests {
         ";
 
         let object = get_parsed_objects(template).unwrap();
-        let ingress = super::IngressWrapper::new(&object).set_spec(&object);
+        let ingress = IngressWrapper::new(&object).set_spec(&object);
         assert!(ingress.is_ok());
 
         let ingress = ingress.unwrap().ingress;
-        assert_eq!(ingress.metadata.labels.unwrap().get("name").unwrap(), "rusty");
+        assert_eq!(ingress.metadata.labels.get("name").unwrap(), "rusty");
 
         let annotations = ingress.metadata.annotations;
-        assert!(annotations.is_none());
+        assert!(annotations.is_empty());
 
         let spec = ingress.spec.unwrap();
-        let tls = spec.tls.to_owned().unwrap();
+        let tls = spec.tls;
         let tls = tls.get(0).unwrap();
         assert_eq!(tls.secret_name.to_owned().unwrap(), "foo-ssl-certificates");
-        assert_eq!(tls.hosts.to_owned().unwrap().get(0).unwrap(), "foo.bar.com");
+        assert_eq!(tls.hosts.get(0).unwrap(), "foo.bar.com");
         
-        let rules = spec.rules.unwrap();
+        let rules = spec.rules;
         let first_rules = rules.get(0).unwrap();
         assert_eq!(first_rules.host.to_owned().unwrap(), "foo.bar.com");
 
@@ -181,7 +182,7 @@ mod tests {
         ";
 
         let object = get_parsed_objects(template).unwrap();
-        let ingress = super::get_ingress_from_object(object);
+        let ingress = get_ingress_from_object(object);
         assert!(ingress.is_ok());
     }
 }
