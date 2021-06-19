@@ -99,9 +99,9 @@ metadata = { name = "nginx", tier = "backend" }
     [service.ports]
 
         [service.ports.<name>]
-            protocol = <string>
-            port = <container port>
-            target_port = <outbound port>
+            protocol = "<string>"
+            port = "<container port>"
+            target_port = "<outbound port>"
 ```
 
 **Ingress**
