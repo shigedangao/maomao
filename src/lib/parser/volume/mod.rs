@@ -4,7 +4,6 @@ use toml::Value;
 use toml::map::Map;
 use crate::lib::helper::toml::get_value_for_t_lax;
 use crate::lib::helper::conv::Convert;
-use crate::lib::helper::error::LError;
 
 #[derive(Debug, Clone, Default)]
 pub struct VolumeClaimTemplates {
@@ -48,27 +47,22 @@ impl Convert for DataSource {
 }
 
 impl VolumeClaimTemplates {
-    /// New
-    ///
-    /// # Description
     /// Create a new VolumeClaimTemplates
     ///
     /// # Arguments
-    /// * `ast` - &Value
     ///
-    /// # Return
-    /// Result<Self, LError>
-    fn new(ast: &Value, name: &str) -> Result<Self, LError> {
+    /// * `ast` - &Value
+    fn new(ast: &Value, name: &str) -> Self {
         let selector = get_value_for_t_lax::<BTreeMap<String, String>>(&ast, "selector");
 
         let mut metadata: BTreeMap<String, String> = BTreeMap::new();
         metadata.insert("name".to_owned(), name.to_owned());
 
-        Ok(VolumeClaimTemplates {
+        VolumeClaimTemplates {
             metadata,
             selector,
             ..Default::default()
-        })
+        }
     }
 
     /// Set Description
@@ -168,18 +162,21 @@ fn get_hmap_from_vec_toml(ast: &Value, key: &str) -> Option<HashMap<String, Stri
 ///
 /// # Return
 /// Result<HashMap<String, VolumeClaimTemplates>, LError>
-pub fn get_volumes_from_toml_tables(m: &Map<String, Value>) -> Result<HashMap<String, VolumeClaimTemplates>, LError> {
+pub fn get_volumes_from_toml_tables(m: &Map<String, Value>) -> Option<HashMap<String, VolumeClaimTemplates>> {
     let mut volumes = HashMap::new();
-
     for (name, items) in m.into_iter() {
-        let volume = VolumeClaimTemplates::new(items, name)?
+        let volume = VolumeClaimTemplates::new(items, name)
             .set_description(items)
             .set_resources(items);
 
         volumes.insert(name.to_owned(), volume);
     }
 
-    Ok(volumes)
+    if volumes.is_empty() {
+        return None
+    }
+
+    Some(volumes)
 }
 
 #[cfg(test)]
@@ -201,7 +198,7 @@ mod tests {
         let map = ast.get("volume_claims").unwrap().as_table().unwrap();
         let claims = super::get_volumes_from_toml_tables(map);
 
-        assert!(claims.is_ok());
+        assert!(claims.is_some());
 
         let claims = claims.unwrap();
         let nginx = claims.get("nginx");
