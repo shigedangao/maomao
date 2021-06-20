@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn expect_to_generate_yaml() {
-        let template = "
+        let template = r#"
             kind = 'workload::deployment'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
@@ -265,12 +265,53 @@ mod tests {
                     secret = [
                         'default_secret'
                     ]
-        ";
+        "#;
 
         let object = get_parsed_objects(template).unwrap();
-        let res = super::get_deployment_from_object(&object);
+        let res = get_deployment_from_object(&object);
         assert!(res.is_ok());
+    }
 
-        println!("{}", res.unwrap());
+    #[test]
+    fn expect_to_parse_create_affinity() {
+        let template = r#"
+        kind = "workload::deployment"
+        name = "nginx"
+        metadata = { name = "nginx", tier = "backend" }
+
+        [affinity]
+            [affinity.node]
+                [affinity.node.preferred]
+                    [affinity.node.preferred.os]
+                        weight = 1
+                        expressions = [
+                            { key = "beta.kubernetes.io/os", operator = "In", values = ["linux"] }
+                        ]
+
+        # container name nginx
+        [workload]
+            replicas = "$[replicas]"
+
+            [workload.nginx]
+            image = "$[image_name]"
+            tag = "$[version]"
+            policy = "IfNotPresent"
+        "#;
+
+        let object = get_parsed_objects(template).unwrap();
+        let deployment = DeploymentWrapper::new(&object).set_spec(&object);
+        assert!(deployment.is_ok());
+
+        let dep = deployment.unwrap();
+        let spec = dep.workload.spec.unwrap();
+        let pod_spec = spec.template.spec.unwrap();
+        assert!(pod_spec.affinity.is_some());
+
+        let aff = pod_spec.affinity.unwrap();
+        assert!(aff.node_affinity.is_some());
+
+        let node_affinity = aff.node_affinity.unwrap();
+        let preferred = node_affinity.preferred_during_scheduling_ignored_during_execution;
+        assert!(!preferred.is_empty());
     }
 }

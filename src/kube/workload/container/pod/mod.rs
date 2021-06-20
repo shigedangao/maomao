@@ -17,10 +17,10 @@ use crate::lib::parser::workload::{
     toleration::Toleration as ParserToleration,
     volume::VolumeMount as ParserVolumeMount
 };
+use crate::kube::workload::affinity::AffinityWrapper;
 
 mod env;
 mod env_from;
-mod affinity;
 
 struct PodSpecWrapper {
     spec: PodSpec
@@ -97,7 +97,10 @@ impl PodSpecWrapper {
     /// Self
     fn set_affinity(mut self, aff: Option<ParserAffinity>) -> Self {
         if let Some(af) = aff {
-            let affinity_wrapper = affinity::AffinityWrapper::new().set_node_affinity(&af);
+            let affinity_wrapper = AffinityWrapper::new()
+                .set_node_affinity(&af)
+                .set_pod_affinity(&af);
+                
             self.spec.affinity = Some(affinity_wrapper.affinity);
         }
 

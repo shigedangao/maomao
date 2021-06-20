@@ -3,7 +3,7 @@
 #
 # wip on toml table and arrays
 replicas = 1
-
+version = 1.19
 image_name = "nginx"
 # should be referenced as "$[arr::typed" -> typed use replace the entire section including the quotes 
 map = ["nginx-configmap"]
