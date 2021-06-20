@@ -57,8 +57,8 @@ impl StatefulSetWrapper {
         if let Some(workload) = parser_spec.workload {
             let spec = StatefulSetSpec {
                 selector: common::get_label_selector_from_object(&object),
-                template: pod::get_pod_template_spec(workload, metadata),
-                volume_claim_templates: claim::get_pvc_list(&object),
+                template: pod::get_pod_template_spec(workload, object, metadata),
+                volume_claim_templates: claim::get_pvc_list(&object).unwrap_or_default(),
                 ..Default::default()
             };
     
@@ -93,6 +93,7 @@ pub fn get_statefulset_from_object(object: &Object) -> Result<String, KubeError>
 #[cfg(test)]
 mod tests {
     use crate::lib::parser::get_parsed_objects;
+    use super::*;
 
     #[test]
     fn expect_to_generate_statefulset() {
@@ -127,14 +128,13 @@ mod tests {
         "#;
 
         let object = get_parsed_objects(template).unwrap();
-        let statefulset = super::StatefulSetWrapper::new(&object).set_spec(&object);
+        let statefulset = StatefulSetWrapper::new(&object).set_spec(&object);
 
         assert!(statefulset.is_ok());
         let statefulset = statefulset.unwrap();
 
         let spec = statefulset.workload.spec.unwrap();
-        assert!(spec.volume_claim_templates.is_some());
-        let claims = spec.volume_claim_templates.unwrap();
+        let claims = spec.volume_claim_templates;
         let rust = claims.get(0).unwrap();
         let rust_spec = rust.spec.to_owned().unwrap();
         let datasource = rust_spec.data_source.unwrap();
@@ -144,9 +144,9 @@ mod tests {
 
         let template = spec.template.spec.unwrap();
         let container = template.containers.get(0).unwrap();
-        assert!(container.volume_mounts.is_some());
+        assert!(!container.volume_mounts.is_empty());
 
-        let rust = container.volume_mounts.as_ref().unwrap().get(0);
+        let rust = container.volume_mounts.get(0);
         assert!(rust.is_some());
 
         let rust = rust.unwrap();

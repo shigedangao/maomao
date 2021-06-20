@@ -4,6 +4,7 @@ use crate::kube::helper::error::KubeError;
 // utils to construct workloads
 mod container;
 mod volumes;
+mod affinity;
 
 // workload
 mod deployment;

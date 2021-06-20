@@ -1,0 +1,22 @@
+# a deployment
+kind = "workload::deployment"
+name = "nginx-affinity"
+metadata = { name = "nginx-affinity", tier = "backend" }
+
+[affinity]
+    [affinity.node]
+        [affinity.node.preferred]
+            [affinity.node.preferred.os]
+                weight = 1
+                expressions = [
+                    { key = "beta.kubernetes.io/os", operator = "In", values = ["linux"] }
+                ]
+
+# container name nginx
+[workload]
+    replicas = 3
+
+    [workload.nginx]
+    image = "nginx"
+    tag = "1.10"
+    policy = "IfNotPresent"

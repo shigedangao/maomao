@@ -41,8 +41,8 @@ pub struct Extract {
 /// ObjectMeta
 pub fn get_metadata_from_object(object: &Object) -> ObjectMeta {
     ObjectMeta {
-        annotations: object.annotations.to_owned(),
-        labels: Some(object.metadata.to_owned()),
+        annotations: object.annotations.to_owned().unwrap_or_default(),
+        labels: object.metadata.to_owned(),
         name: object.metadata.get("name").cloned(),
         namespace: object.namespace.to_owned(),
         ..Default::default()
@@ -65,7 +65,7 @@ pub fn get_metadata_from_object(object: &Object) -> ObjectMeta {
 /// ObjectMeta
 pub fn get_workload_metadata_from_object(object: &Object) -> ObjectMeta {
     ObjectMeta {
-        labels: Some(object.metadata.to_owned()),
+        labels: object.metadata.to_owned(),
         ..Default::default()
     }
 }
@@ -82,8 +82,8 @@ pub fn get_workload_metadata_from_object(object: &Object) -> ObjectMeta {
 /// LabelSelector
 pub fn get_label_selector_from_object(object: &Object) -> LabelSelector {
     LabelSelector {
-        match_expressions: None,
-        match_labels: Some(object.metadata.to_owned())
+        match_expressions: Vec::new(),
+        match_labels: object.metadata.to_owned()
     }
 }
 
