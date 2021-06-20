@@ -49,7 +49,7 @@ async fn clear_dynamic_object(client: Client, content: &str, name: &str) -> Resu
         "metadata": metadata
     });
 
-    let patch = Patch::Apply(patch_json);
+    let patch = Patch::Merge(patch_json);
     let dynamic: Api<DynamicObject> = Api::namespaced_with(client, &ns, &api_res);
     dynamic.patch(name, &pp, &patch)
         .await
@@ -208,6 +208,7 @@ mod tests {
         "#;
 
         let res = super::dry_run(yaml).await;
+        println!("{:?}", res);
         assert!(res.is_ok());
     }
 
