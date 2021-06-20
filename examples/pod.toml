@@ -1,0 +1,8 @@
+kind = "workload::pod"
+name = "hello-node"
+metadata = { name = "hello-node" }
+
+[workload]
+    [workload.node]
+    image = "k8s.gcr.io/echoserver"
+    tag = "1.4"
