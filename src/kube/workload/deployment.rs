@@ -83,7 +83,7 @@ impl DeploymentWrapper {
 /// # Return
 /// Result<String, KubeError>
 pub fn get_deployment_from_object(object: &Object) -> Result<String, KubeError> {
-    let deployment = DeploymentWrapper::new(&object).set_spec(&object)?;
+    let deployment = DeploymentWrapper::new(object).set_spec(object)?;
     let deployment_string = serde_yaml::to_string(&deployment.workload)?;
 
     Ok(deployment_string)
