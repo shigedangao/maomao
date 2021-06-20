@@ -176,12 +176,8 @@ impl Object {
 
         let volumes_claims_table = volumes_claims.as_table().unwrap();
         let computed_volumes = volume::get_volumes_from_toml_tables(volumes_claims_table);
-        if let Ok(volumes) = computed_volumes {
+        if let Some(volumes) = computed_volumes {
             self.volume_claim = Some(volumes);
-        } else {
-            // print the error
-            // @TODO replace the println! with a print error or something else...
-            println!("{:?}", computed_volumes.unwrap_err());
         }
 
         self
