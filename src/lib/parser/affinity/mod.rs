@@ -16,20 +16,21 @@ pub struct Affinity {
 
 #[derive(Debug, Default, Clone)]
 pub struct AffinityType {
-    pub required: Option<RequiredAffinityDefinition>,
+    pub required: Option<HashMap<String, RequiredAffinityDefinition>>,
     pub preferred: Option<HashMap<String, PreferredAffinityDefinition>>
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct RequiredAffinityDefinition {
     pub expressions: Vec<Expression>,
-    pub with_multiple_expressions: Vec<Vec<Expression>>
+    pub topology: Option<String>
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct PreferredAffinityDefinition {
-    pub expression: Vec<Expression>,
-    pub weight: Option<i32>
+    pub expressions: Vec<Expression>,
+    pub weight: Option<i32>,
+    pub topology: Option<String>
 }
 
 #[derive(Debug, Default, Clone)]
@@ -68,7 +69,14 @@ impl Affinity {
     fn set_affinity(&mut self, ast: &Value, kind: AffinityKind) {
         let mut affinity_type = AffinityType::default();
         if let Some(value) = ast.get("required") {
-            affinity_type.required = RequiredAffinityDefinition::new(value);
+            if let Some(map) = value.as_table() {
+                let defs: HashMap<String, RequiredAffinityDefinition> = map
+                    .into_iter()
+                    .map(|(n, v)| (n.to_owned(), RequiredAffinityDefinition::new(v)))
+                    .collect();
+
+                affinity_type.required = Some(defs);
+            }
         }
 
         if let Some(value) = ast.get("preferred") {
@@ -100,28 +108,15 @@ impl RequiredAffinityDefinition {
     ///
     /// # Return
     /// Option<Self>
-    fn new(ast: &Value) -> Option<Self> {
+    fn new(ast: &Value) -> Self {
         let mut def = RequiredAffinityDefinition::default();
         if let Some(exp) = ast.get("expressions") {
             def.expressions = Expression::as_vec(exp);
         }
+        
+        def.topology = get_value_for_t_lax::<String>(ast, "topology");
 
-        if let Some(with_multiple_exp) = ast.get("with_multiple_expressions") {
-            if let Some(arr) = with_multiple_exp.as_array() {
-                let multi_vec: Vec<Vec<Expression>> = arr
-                    .into_iter()
-                    .map(|v| Expression::as_vec(v))
-                    .collect();
-
-                def.with_multiple_expressions = multi_vec;
-            }
-        }
-
-        if def.expressions.is_empty() && def.with_multiple_expressions.is_empty() {
-            return None;
-        }
-
-        Some(def)
+        def
     } 
 }
 
@@ -139,10 +134,11 @@ impl PreferredAffinityDefinition {
     fn new(ast: &Value) -> Self {
         let mut def = PreferredAffinityDefinition::default();
         if let Some(exp) = ast.get("expressions") {
-            def.expression = Expression::as_vec(exp);
+            def.expressions = Expression::as_vec(exp);
         }
-        
+
         def.weight = get_value_for_t_lax::<i32>(ast, "weight");
+        def.topology = get_value_for_t_lax::<String>(ast, "topology");
 
         def
     }
@@ -242,9 +238,10 @@ mod tests {
         [affinity]
             [affinity.node]
                 [affinity.node.required]
-                    expressions = [
-                        { key = "kubernetes.io/e2e-az-name", operator = "in", values = ["foo", "bar"] }
-                    ]
+                    [affinity.node.required.zone]
+                        expressions = [
+                            { key = "kubernetes.io/e2e-az-name", operator = "in", values = ["foo", "bar"] }
+                        ]
                 [affinity.node.preferred]
                     [affinity.node.preferred.preemptible]
                         weight = 1
@@ -264,7 +261,8 @@ mod tests {
 
         let required = node_affinity.required.unwrap();
 
-        let first_exp = required.expressions.get(0).unwrap();
+        let first_exp = required.get("zone").unwrap().expressions.to_owned();
+        let first_exp = first_exp.get(0).unwrap();
         assert_eq!(first_exp.key, "kubernetes.io/e2e-az-name");
         assert_eq!(first_exp.operator, "in");
         assert_eq!(first_exp.values, ["foo", "bar"]);
@@ -283,13 +281,10 @@ mod tests {
         [affinity]
             [affinity.node]
                 [affinity.node.required]
-                    expressions = [
-                        { key = "kubernetes.io/e2e-az-name", operator = "in", values = ["foo", "bar"] }
-                    ]
-                    with_multiple_expressions = [
-                        [ { key = "node-role.kubernetes.io/role", operator = "in", values = ["app"] } ],
-                        [ { key = "node-role.kubernetes.io/environment", operator = "in", values = ["perf"] } ]
-                    ]
+                    [affinity.node.required.zone]
+                        expressions = [
+                            { key = "node-role.kubernetes.io/role", operator = "in", values = ["foo", "bar"] }
+                        ]
         "#;
 
         let ast = template.parse::<Value>().unwrap();
@@ -302,17 +297,11 @@ mod tests {
         assert!(node_affinity.required.is_some());   
 
         let affinity_required = node_affinity.required.unwrap();
-        let multiple_terms = affinity_required.with_multiple_expressions;
+        let zone = affinity_required.get("zone").unwrap();
+        let expression = zone.expressions.get(0).unwrap();
 
-        assert!(!multiple_terms.is_empty());
-        let first_list_term = multiple_terms.get(0).unwrap();
-        let first_term = first_list_term.get(0);
-
-        assert!(first_term.is_some());
-        let first_term = first_term.unwrap();
-
-        assert_eq!(first_term.operator, "in");
-        assert_eq!(first_term.key, "node-role.kubernetes.io/role");
+        assert_eq!(expression.operator, "in");
+        assert_eq!(expression.key, "node-role.kubernetes.io/role");
     }
 
     #[test]
@@ -333,7 +322,13 @@ mod tests {
         let node_affinity = affinity.node.unwrap();
 
         assert!(node_affinity.preferred.is_none());
-        assert!(node_affinity.required.is_none());   
+        
+        let required = node_affinity.required.unwrap();
+        let foo = required.get("foo");
+        assert!(foo.is_some());
+
+        let foo = foo.unwrap();
+        assert!(foo.expressions.is_empty());
     }
 
     #[test]
@@ -361,6 +356,6 @@ mod tests {
         let preferred = pod_affinity.preferred.unwrap();
         let region = preferred.get("region").unwrap();
         assert_eq!(region.weight.unwrap(), 1);
-        assert_eq!(region.expression.get(0).unwrap().key, "kubernetes.io/e2e-az-name");
+        assert_eq!(region.expressions.get(0).unwrap().key, "kubernetes.io/e2e-az-name");
     }
 }

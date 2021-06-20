@@ -3,50 +3,6 @@ kind = "workload::deployment"
 name = "nginx"
 metadata = { name = "nginx", tier = "backend" }
 
-[affinity]
-    [affinity.node]
-        [affinity.node.required]
-            expressions = [
-                { key = "kubernetes.io/e2e-az-name", operator = "in", values = ["foo", "bar"] }
-            ]
-            # Equivalent in YAML (basically an OR) operation
-            # nodeSelectorTerms:
-            #   - matchExpressions:
-            #     - key: node-role.kubernetes.io/role
-            #       operator: In
-            #       values:
-            #        - app
-            #    - matchExpressions:
-            #      - key: node-role.kubernetes.io/environment
-            #        operator: In
-            #        values:
-            #          - perf
-            with_multiple_expressions = [
-                [ { key = "node-role.kubernetes.io/role", operator = "in", values = ["app"] } ],
-                [ { key = "node-role.kubernetes.io/environment", operator = "in", values = ["perf"] } ]
-            ]
-            
-        [affinity.node.preferred]
-            [affinity.node.preferred.preemptible]
-                weight = 1
-                expressions = [
-                    { key = "kubernetes.io/e2e-az-name", operator = "in", values = ["foo", "bar"] }
-                ]
-            
-            [affinity.node.preferred.region]
-                weight = 1
-                expressions = [
-                    { key = "kubernetes.io/e2e-az-name", operator = "in", values = ["foo", "bar"] }
-                ]
-
-    [affinity.pod]
-        [affinity.pod.preferred]
-            weight = 1
-            topology_key = "kubernetes.io/hostname"
-            expressions = [
-                { key = "app", operator = "in", values = ["store"] }
-            ]
-
 # container name nginx
 [workload]
     replicas = "$[replicas]"

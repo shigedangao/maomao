@@ -41,6 +41,14 @@ annotations = { foo = "<optional>"}
             { key_name = "storage", value = "1Gi" }
         ]
 
+# optional
+[affinity]
+    [affinity.node.preferred]
+        weight = 1
+        expressions = [
+            { key = "beta.kubernetes.io/os", operator = "In", values = ["linux"] }
+        ]
+
 
 [workload]
     replicas = "<nb of replicas>"
