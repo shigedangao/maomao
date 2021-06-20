@@ -66,7 +66,6 @@ pub fn get_pod_from_object(object: &Object) -> Result<String, KubeError> {
 #[cfg(test)]
 mod tests {
     use crate::lib::parser::get_parsed_objects;
-
     use super::*;
 
     #[test]
