@@ -19,6 +19,7 @@ use crate::lib::parser::workload::{
 };
 use crate::kube::workload::affinity::AffinityWrapper;
 
+mod container;
 mod env;
 mod env_from;
 
@@ -111,35 +112,12 @@ impl PodSpecWrapper {
 // @Question: Should we make this more flexible ?
 impl From<ParserContainer> for Container {
     fn from(c: ParserContainer) -> Self {
-        let mut container = Container {
-            name: c.name,
-            image: Some(format!("{}:{}", c.image.repo, c.image.tag)),
-            image_pull_policy: c.image.policy,
-            ..Default::default()
-        };
+        let cont = container::ContainerWrapper::new(&c)
+            .set_env(&c)
+            .set_volumes(&c)
+            .set_resources(&c);
 
-        if let Some(env) = c.env {
-            let mut from_env = env::get_env_vars(env.from);
-            let mut raw_env = env::get_env_vars(env.raw);
-            from_env.append(&mut raw_env);
-
-            container.env = from_env;
-        }
-
-        if let Some(env) = c.env_from {
-            container.env_from = env_from::get_env_source_from_envfrom(env);
-        }
-
-        if let Some(volume_mounts) = c.volume_mounts {
-            let mounts = volume_mounts
-                .into_iter()
-                .map(VolumeMount::from)
-                .collect::<Vec<VolumeMount>>();
-
-            container.volume_mounts = mounts;
-        }
-
-        container
+        cont.container
     }
 }
 

@@ -11,6 +11,8 @@ use crate::lib::helper::toml::{
 pub mod env;
 pub mod toleration;
 pub mod volume;
+pub mod resource;
+pub mod probes;
 
 #[derive(Debug, Clone, Default)]
 pub struct Workload {
@@ -33,6 +35,8 @@ pub struct Container {
     pub env_from: Option<env::EnvFrom>,
     pub env: Option<env::Env>,
     pub volume_mounts: Option<Vec<volume::VolumeMount>>,
+    pub resources: Option<resource::Resources>,
+    pub probes: Option<probes::Probes>
 }
 
 impl Container {
@@ -109,7 +113,38 @@ impl Container {
         }
 
         self
-    } 
+    }
+
+    /// Set Container Resources to the Container wrapper
+    ///
+    /// # Arguments
+    ///
+    /// * `mut self` - Self
+    /// * `ast` - &Value
+    fn set_resources(mut self, ast: &Value) -> Self {
+        if let Some(r) = ast.get("resources") {
+            let res = resource::Resources::new()
+                .set_limits(r)
+                .set_requests(r);
+
+            self.resources = Some(res);
+        }
+
+        self
+    }
+
+    /// Set Probes to Container wrapper
+    ///
+    /// # Arguments
+    ///
+    /// * `mut self` - Self
+    /// * `ast` - &Value
+    fn set_probes(mut self, ast: &Value) -> Self {
+        if let Some(p) = ast.get("probes") {
+            self.probes = Some(probes::Probes::new(p));
+        }
+        self
+    }
 }
 
 impl Workload {
@@ -148,7 +183,10 @@ impl Workload {
             if items.is_table() {
                 let container = Container::new(name, items)?
                     .set_envs(items)
-                    .set_volumes_mounts(items);
+                    .set_volumes_mounts(items)
+                    .set_resources(items)
+                    .set_probes(items);
+
                 containers.push(container);
             }
         }
@@ -179,6 +217,7 @@ pub fn get_workload(ast: &Value) -> Result<Workload, LError> {
 #[cfg(test)]
 mod test {
     use toml::Value;
+    use super::*;
 
     #[test]
     fn expect_parse_basic_workload() {
@@ -197,7 +236,7 @@ mod test {
         ";
 
         let ast = template.parse::<Value>().unwrap();
-        let workload = super::get_workload(&ast);
+        let workload = get_workload(&ast);
 
         assert!(workload.is_ok());
 
@@ -211,6 +250,7 @@ mod test {
         assert_eq!(container.image.repo, "foo");
         assert_eq!(container.image.tag, "bar");
         assert_eq!(container.image.policy.as_ref().unwrap(), "IfNotPresent");
+        assert!(container.resources.is_none());
     }
 
     #[test]
@@ -238,7 +278,7 @@ mod test {
         ";
 
         let ast = template.parse::<Value>().unwrap();
-        let workload = super::get_workload(&ast);
+        let workload = get_workload(&ast);
 
         assert!(workload.is_ok());
 
@@ -286,7 +326,7 @@ mod test {
         ";
 
         let ast = template.parse::<Value>().unwrap();
-        let workload = super::get_workload(&ast);
+        let workload = get_workload(&ast);
 
         assert!(workload.is_ok());
 
@@ -312,7 +352,7 @@ mod test {
 
     #[test]
     fn expect_to_parse_tolerations() {
-        let template = "
+        let template = r#"
             kind = 'workload::daemonset'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
@@ -327,10 +367,10 @@ mod test {
                 [workload.rust]
                     image = 'foo'
                     tag = 'bar'
-        ";
+        "#;
 
         let ast = template.parse::<Value>().unwrap();
-        let workload = super::get_workload(&ast);
+        let workload = get_workload(&ast);
 
         assert!(workload.is_ok());
         let tolerations = workload.unwrap().tolerations;
@@ -340,5 +380,83 @@ mod test {
         let first_key = tolerations.get(0).unwrap();
         assert_eq!(first_key.key.to_owned().unwrap(), "node-role.kubernetes.io/master");
         assert_eq!(first_key.effect.to_owned().unwrap(), "NoSchedule");
+    }
+
+    #[test]
+    fn expect_to_parse_resources() {
+        let template = r#"
+            kind = 'workload::daemonset'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [workload]
+                replicas = 3
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+
+                    [workload.rust.resources]
+                        limits = { memory = "64Mi", cpu = "250m" }
+
+        "#;
+
+        let ast = template.parse::<Value>().unwrap();
+        let workload = get_workload(&ast);
+        assert!(workload.is_ok());
+        
+        let container = workload.as_ref().unwrap().containers.get(0);
+        let container = container.unwrap();
+        
+        let res = container.resources.to_owned();
+        assert!(res.is_some());
+
+        let r = res.unwrap();
+        assert!(r.limits.is_some());
+
+        let limits = r.limits.unwrap();
+        assert_eq!(limits.memory.unwrap(), "64Mi");
+        assert_eq!(limits.cpu.unwrap(), "250m");
+    }
+
+    #[test]
+    fn expect_to_parse_probes() {
+        let template = r#"
+            kind = 'workload::daemonset'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [workload]
+                replicas = 3
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+
+                [workload.rust.probes]
+                    [workload.rust.probes.liveness]
+                        http_get = { path = "/v2", port = "3000" }
+                        initial_delay_seconds = 30         
+        "#;
+
+        let ast = template.parse::<Value>().unwrap();
+        let workload = get_workload(&ast);
+        assert!(workload.is_ok());
+        
+        let container = workload.as_ref().unwrap().containers.get(0);
+        let container = container.unwrap();
+        
+        let probes = container.probes.to_owned();
+        assert!(probes.is_some());
+
+        let probes = probes.unwrap();
+        assert!(probes.liveness.is_some());
+        assert!(probes.readiness.is_none());
+
+        let liveness = probes.liveness.unwrap();
+        let http_get = liveness.http_get.unwrap();
+        assert_eq!(liveness.initial_delays_seconds.unwrap(), 30);
+        assert_eq!(http_get.path.unwrap(), "/v2");
+        assert_eq!(http_get.port.unwrap(), "3000");
     }
 }
