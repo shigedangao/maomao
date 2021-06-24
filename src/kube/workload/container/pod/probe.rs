@@ -73,7 +73,10 @@ impl From<ProbeHttpGet> for HTTPGetAction {
         }
 
         if let Some(port) = p.port {
-            http.port = IntOrString::String(port);
+            match port.parse::<i32>() {
+                Ok(number) => http.port = IntOrString::Int(number),
+                Err(_) => http.port = IntOrString::String(port)
+            }
         }
 
         http
