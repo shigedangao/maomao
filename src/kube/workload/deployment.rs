@@ -57,7 +57,7 @@ impl DeploymentWrapper {
             let spec = DeploymentSpec {
                 replicas: workload.replicas,
                 selector: common::get_label_selector_from_object(&object),
-                template: pod::get_pod_template_spec(workload, metadata),
+                template: pod::get_pod_template_spec(workload, object, metadata),
                 ..Default::default()
             };
 
@@ -83,7 +83,7 @@ impl DeploymentWrapper {
 /// # Return
 /// Result<String, KubeError>
 pub fn get_deployment_from_object(object: &Object) -> Result<String, KubeError> {
-    let deployment = DeploymentWrapper::new(&object).set_spec(&object)?;
+    let deployment = DeploymentWrapper::new(object).set_spec(object)?;
     let deployment_string = serde_yaml::to_string(&deployment.workload)?;
 
     Ok(deployment_string)
@@ -92,8 +92,7 @@ pub fn get_deployment_from_object(object: &Object) -> Result<String, KubeError> 
 #[cfg(test)]
 mod tests {
     use crate::lib::parser::get_parsed_objects;
-
-    use super::DeploymentWrapper;
+    use super::*;
 
     #[test]
     fn create_deployment_from_object() {
@@ -117,7 +116,7 @@ mod tests {
         assert!(deployment.is_ok());
 
         let workload = deployment.unwrap().workload;
-        assert_eq!(workload.metadata.labels.unwrap().get("name").unwrap(), "rusty");
+        assert_eq!(workload.metadata.labels.get("name").unwrap(), "rusty");
         assert_eq!(workload.metadata.namespace.unwrap(), "foo");
         assert!(workload.spec.is_some());
 
@@ -125,7 +124,7 @@ mod tests {
         assert_eq!(workload_spec.replicas.unwrap(), 3);
 
         let spec_metadata = workload_spec.template.metadata.unwrap();
-        assert_eq!(spec_metadata.labels.unwrap().get("name").unwrap(), "rusty");
+        assert_eq!(spec_metadata.labels.get("name").unwrap(), "rusty");
 
         let pod_spec = workload_spec.template.spec.unwrap();
         let container = pod_spec.containers.get(0);
@@ -135,7 +134,6 @@ mod tests {
 
         assert_eq!(rust.image.to_owned().unwrap(), "foo:bar");
         assert!(rust.image_pull_policy.is_none());
-        assert!(rust.env.is_none());
     }
 
     #[test]
@@ -171,7 +169,7 @@ mod tests {
         let container = pod.containers.get(0).unwrap();
 
         assert_eq!(container.name, "rust");
-        let env = container.env.to_owned().unwrap();
+        let env = container.env.to_owned();
         let from_configmap = env.get(0).unwrap();
         assert_eq!(from_configmap.name, "foo");
         assert!(from_configmap.value.is_none());
@@ -220,7 +218,7 @@ mod tests {
         let container = pod.containers.get(0).unwrap();
 
         assert_eq!(container.name, "node");
-        let env_from = container.env_from.to_owned().unwrap();
+        let env_from = container.env_from.to_owned();
         let map = env_from.get(0).unwrap();
         assert!(map.config_map_ref.is_some());
         assert!(map.secret_ref.is_none());
@@ -234,7 +232,7 @@ mod tests {
 
     #[test]
     fn expect_to_generate_yaml() {
-        let template = "
+        let template = r#"
             kind = 'workload::deployment'
             name = 'rusty'
             metadata = { name = 'rusty', tier = 'backend' }
@@ -267,12 +265,53 @@ mod tests {
                     secret = [
                         'default_secret'
                     ]
-        ";
+        "#;
 
         let object = get_parsed_objects(template).unwrap();
-        let res = super::get_deployment_from_object(&object);
+        let res = get_deployment_from_object(&object);
         assert!(res.is_ok());
+    }
 
-        println!("{}", res.unwrap());
+    #[test]
+    fn expect_to_parse_create_affinity() {
+        let template = r#"
+        kind = "workload::deployment"
+        name = "nginx"
+        metadata = { name = "nginx", tier = "backend" }
+
+        [affinity]
+            [affinity.node]
+                [affinity.node.preferred]
+                    [affinity.node.preferred.os]
+                        weight = 1
+                        expressions = [
+                            { key = "beta.kubernetes.io/os", operator = "In", values = ["linux"] }
+                        ]
+
+        # container name nginx
+        [workload]
+            replicas = "$[replicas]"
+
+            [workload.nginx]
+            image = "$[image_name]"
+            tag = "$[version]"
+            policy = "IfNotPresent"
+        "#;
+
+        let object = get_parsed_objects(template).unwrap();
+        let deployment = DeploymentWrapper::new(&object).set_spec(&object);
+        assert!(deployment.is_ok());
+
+        let dep = deployment.unwrap();
+        let spec = dep.workload.spec.unwrap();
+        let pod_spec = spec.template.spec.unwrap();
+        assert!(pod_spec.affinity.is_some());
+
+        let aff = pod_spec.affinity.unwrap();
+        assert!(aff.node_affinity.is_some());
+
+        let node_affinity = aff.node_affinity.unwrap();
+        let preferred = node_affinity.preferred_during_scheduling_ignored_during_execution;
+        assert!(!preferred.is_empty());
     }
 }

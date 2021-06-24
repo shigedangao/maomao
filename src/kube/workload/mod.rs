@@ -4,11 +4,13 @@ use crate::kube::helper::error::KubeError;
 // utils to construct workloads
 mod container;
 mod volumes;
+mod affinity;
 
 // workload
 mod deployment;
 mod daemonset;
 mod statefulset;
+mod pod;
 
 /// Parse Workload From Object
 ///
@@ -26,6 +28,7 @@ pub fn parse_workload_from_object(object: Object, kind: String) -> Result<String
         "deployment" => deployment::get_deployment_from_object(&object),
         "daemonset" => daemonset::get_daemonset_from_object(&object),
         "statefulset" => statefulset::get_statefulset_from_object(&object),
+        "pod" => pod::get_pod_from_object(&object),
         _ => Ok("".to_owned())
     }
 }

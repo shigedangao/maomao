@@ -9,6 +9,7 @@ use super::helper::error::KubeError;
 struct CustomCrd {
     kind: String,
     metadata: ObjectMeta,
+    namespace: Option<String>,
     version: Option<String>,
     spec: Option<Value>
 }
@@ -29,6 +30,7 @@ impl CustomCrd {
         CustomCrd {
             kind,
             metadata: common::get_metadata_from_object(&object),
+            namespace: object.namespace.to_owned(),
             version: object.version.clone(),
             spec: None
         }
@@ -139,6 +141,7 @@ mod test {
         let template = r#"
         kind = "custom::ManagedCertificate"
         version = "networking.gke.io/v1"
+        namespace = "foo"
         metadata = { name = "rusty-certificate" }
 
         [spec]
@@ -159,6 +162,7 @@ mod test {
         assert_eq!(crd.kind, "ManagedCertificate");
         assert_eq!(crd.version.unwrap(), "networking.gke.io/v1");
         assert_eq!(crd.metadata.name.unwrap(), "rusty-certificate");
+        assert_eq!(crd.namespace.unwrap(), "foo");
         assert!(crd.spec.is_some());
 
         let yaml = super::crd_to_yaml(object, "ManagedCertificate".to_owned());

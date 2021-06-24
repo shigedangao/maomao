@@ -55,7 +55,7 @@ impl DaemonSetWrapper {
         if let Some(workload) = parser_spec.workload {
             let spec = DaemonSetSpec {
                 selector: common::get_label_selector_from_object(&object),
-                template: pod::get_pod_template_spec(workload, metadata),
+                template: pod::get_pod_template_spec(workload, object, metadata),
                 ..Default::default()
             };
 
@@ -90,6 +90,7 @@ pub fn get_daemonset_from_object(object: &Object) -> Result<String, KubeError> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::lib::parser::get_parsed_objects;
 
     #[test]
@@ -122,13 +123,13 @@ mod tests {
         "#;
 
         let object = get_parsed_objects(template).unwrap();
-        let daemonset = super::DaemonSetWrapper::new(&object).set_spec(&object);
+        let daemonset = DaemonSetWrapper::new(&object).set_spec(&object);
 
         assert!(daemonset.is_ok());
         let daemonset = daemonset.unwrap();
         let spec = daemonset.workload.spec.unwrap();
         let pod_spec = spec.template.spec.unwrap();
-        let tolerations = pod_spec.tolerations.unwrap();
+        let tolerations = pod_spec.tolerations;
 
         assert_eq!(tolerations.get(0).unwrap().key.to_owned().unwrap(), "node-role.kubernetes.io/master");
         assert_eq!(tolerations.get(0).unwrap().effect.to_owned().unwrap(), "NoSchedule");

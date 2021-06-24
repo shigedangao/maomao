@@ -66,10 +66,7 @@ pub async fn get_current_spec(content: &str) -> Result<String, KubeError> {
     res.metadata.resource_version.take();
     res.metadata.creation_timestamp.take();
     
-    if let Some(annotations) = res.metadata.annotations.as_mut() {
-        clean_annotations(annotations);    
-    }
-    
+    clean_annotations(&mut res.metadata.annotations);    
     let yaml = serde_yaml::to_string(&res)?;
 
     Ok(yaml)

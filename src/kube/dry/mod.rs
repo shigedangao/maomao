@@ -40,7 +40,7 @@ async fn clear_dynamic_object(client: Client, content: &str, name: &str) -> Resu
     // get & edit metadata
     let mut metadata = extract.metadata;
     let ns = metadata.to_owned().namespace.unwrap_or_else(|| DEFAULT_NS.to_owned());
-    metadata.managed_fields = Some(Vec::new());
+    metadata.managed_fields = Vec::new();
     
     // create a Patch that remove the managedField metadata
     let patch_json = serde_json::json!({
@@ -51,13 +51,9 @@ async fn clear_dynamic_object(client: Client, content: &str, name: &str) -> Resu
 
     let patch = Patch::Merge(patch_json);
     let dynamic: Api<DynamicObject> = Api::namespaced_with(client, &ns, &api_res);
-    let res = dynamic.patch(name, &pp, &patch)
+    dynamic.patch(name, &pp, &patch)
         .await
         .map_err(parse_kube_error)?;
-
-    if res.metadata.managed_fields.is_some() {
-        return Err(KubeError::from(Error::RemoveManagedField(name)));
-    }
     
     Ok(())
 } 
@@ -114,7 +110,7 @@ pub async fn dry_run(content: &str) -> Result<(), KubeError> {
         .map_err(parse_kube_error)?;
 
     // clear the managed_field in case if it's not already done
-    if res.metadata.managed_fields.is_some() {
+    if !res.metadata.managed_fields.is_empty() {
         // clear the dynamic object of it's managedField
         clear_dynamic_object(client, content, &name).await?;
     }
@@ -212,6 +208,7 @@ mod tests {
         "#;
 
         let res = super::dry_run(yaml).await;
+        println!("{:?}", res);
         assert!(res.is_ok());
     }
 

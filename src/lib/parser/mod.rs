@@ -1,3 +1,4 @@
+pub mod affinity;
 pub mod network;
 pub mod workload;
 pub mod volume;
@@ -82,6 +83,7 @@ pub struct Object {
     pub annotations: Option<BTreeMap<String, String>>,
     pub spec: Option<spec::Spec>,
 
+    pub affinity: Option<affinity::Affinity>,
     pub volume_claim: Option<HashMap<String, volume::VolumeClaimTemplates>>
 }
 
@@ -174,12 +176,25 @@ impl Object {
 
         let volumes_claims_table = volumes_claims.as_table().unwrap();
         let computed_volumes = volume::get_volumes_from_toml_tables(volumes_claims_table);
-        if let Ok(volumes) = computed_volumes {
+        if let Some(volumes) = computed_volumes {
             self.volume_claim = Some(volumes);
-        } else {
-            // print the error
-            // @TODO replace the println! with a print error or something else...
-            println!("{:?}", computed_volumes.unwrap_err());
+        }
+
+        self
+    }
+
+    /// Set Affinity
+    ///
+    /// # Arguments
+    /// * `mut self`
+    /// * `ast` - &Value
+    ///
+    /// # Return
+    /// self
+    fn set_affinity(mut self, ast: &Value) -> Self {
+        let affinity = ast.get("affinity");
+        if let Some(aff) = affinity {
+            self.affinity = affinity::get_affinity_from_ast(aff);
         }
 
         self
@@ -205,6 +220,7 @@ pub fn get_parsed_objects(tmpl: &str) -> Result<Object, LError> {
     let object = Object::new(&ast)?
         .set_annotations(&ast)
         .set_volumes(&ast)
+        .set_affinity(&ast)
         .set_spec(&ast);
 
     Ok(object)

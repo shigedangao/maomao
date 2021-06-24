@@ -6,9 +6,6 @@ use toml::Value;
 use std::collections::BTreeMap;
 
 pub trait Convert {
-    /// Convert
-    ///
-    /// # Description
     /// Convert a toml::Value value to a concrete Rust type
     ///
     /// # Arguments
