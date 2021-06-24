@@ -28,12 +28,11 @@ pub fn read_files_to_string(path: &str) -> Result<(HashMap<String, String>, Opti
         let path = entry.path();
         if path.is_file() {
             if let Some(name) = path.clone().file_stem().and_then(|u| u.to_str()) {
+                let tmpl = fs::read_to_string(path)?;
                 if name != "_vars" {
-                    let tmpl = fs::read_to_string(path)?;
                     templates.insert(name.to_owned(), tmpl);
                 } else {
-                    let vars = fs::read_to_string(path)?;
-                    variables = Some(vars);
+                    variables = Some(tmpl);
                 }
             }
         }

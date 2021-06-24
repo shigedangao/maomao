@@ -420,7 +420,7 @@ mod test {
     }
 
     #[test]
-    fn expect_to_parse_probes() {
+    fn expect_to_parse_liveness_probe() {
         let template = r#"
             kind = 'workload::daemonset'
             name = 'rusty'
@@ -458,5 +458,46 @@ mod test {
         assert_eq!(liveness.initial_delays_seconds.unwrap(), 30);
         assert_eq!(http_get.path.unwrap(), "/v2");
         assert_eq!(http_get.port.unwrap(), "3000");
+    }
+
+    #[test]
+    fn expect_to_parse_readiness_probe() {
+        let template = r#"
+            kind = 'workload::daemonset'
+            name = 'rusty'
+            metadata = { name = 'rusty', tier = 'backend' }
+
+            [workload]
+                replicas = 3
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+
+                [workload.rust.probes]
+                    [workload.rust.probes.readiness]
+                        http_get = { path = "/v3", port = "4000" }
+                        timeout_seconds = 30   
+        "#;
+
+        let ast = template.parse::<Value>().unwrap();
+        let workload = get_workload(&ast);
+        assert!(workload.is_ok());
+        
+        let container = workload.as_ref().unwrap().containers.get(0);
+        let container = container.unwrap();
+        
+        let probes = container.probes.to_owned();
+        assert!(probes.is_some());
+
+        let probes = probes.unwrap();
+        assert!(probes.liveness.is_none());
+        assert!(probes.readiness.is_some());
+
+        let readiness = probes.readiness.unwrap();
+        let http_get = readiness.http_get.unwrap();
+        assert_eq!(readiness.timeout_seconds.unwrap(), 30);
+        assert_eq!(http_get.path.unwrap(), "/v3");
+        assert_eq!(http_get.port.unwrap(), "4000");
     }
 }

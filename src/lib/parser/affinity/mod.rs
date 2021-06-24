@@ -111,7 +111,7 @@ impl RequiredAffinityDefinition {
     fn new(ast: &Value) -> Self {
         let mut def = RequiredAffinityDefinition::default();
         if let Some(exp) = ast.get("expressions") {
-            def.expressions = Expression::as_vec(exp);
+            def.expressions = Expression::vec(exp);
         }
         
         def.topology = get_value_for_t_lax::<String>(ast, "topology");
@@ -134,7 +134,7 @@ impl PreferredAffinityDefinition {
     fn new(ast: &Value) -> Self {
         let mut def = PreferredAffinityDefinition::default();
         if let Some(exp) = ast.get("expressions") {
-            def.expressions = Expression::as_vec(exp);
+            def.expressions = Expression::vec(exp);
         }
 
         def.weight = get_value_for_t_lax::<i32>(ast, "weight");
@@ -159,7 +159,7 @@ impl Convert for Expression {
 }
 
 impl Expression {
-    fn as_vec(ast: &Value) -> Vec<Self> {
+    fn vec(ast: &Value) -> Vec<Self> {
         if let Some(exp_array) = ast.as_array() {
             return exp_array
                 .iter()

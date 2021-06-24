@@ -19,10 +19,7 @@ impl Convert for Resource {
         let memory = get_value_for_t_lax::<String>(v, "memory");
         let cpu = get_value_for_t_lax::<String>(v, "cpu");
 
-        Resource {
-            memory,
-            cpu
-        }
+        Resource { cpu, memory }
     }
 }
 

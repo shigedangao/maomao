@@ -25,7 +25,10 @@ metadata = { name = "nginx", tier = "backend" }
             "$[from::typed]",
             { type = "res_field", name = "nginx-container", item = "limits.cpu" }
         ]
-    
         raw = [
             { name = "A_VALUE", item = "bar" }
         ]
+
+        [workload.nginx.resources]
+            limits = { memory = "64Mi", cpu = "250m" }
+            requests = { memory = "64Mi", cpu = "250m" }

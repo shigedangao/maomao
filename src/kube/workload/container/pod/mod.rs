@@ -22,6 +22,7 @@ use crate::kube::workload::affinity::AffinityWrapper;
 mod container;
 mod env;
 mod env_from;
+mod probe;
 
 struct PodSpecWrapper {
     spec: PodSpec
@@ -115,7 +116,8 @@ impl From<ParserContainer> for Container {
         let cont = container::ContainerWrapper::new(&c)
             .set_env(&c)
             .set_volumes(&c)
-            .set_resources(&c);
+            .set_resources(&c)
+            .set_probes(&c);
 
         cont.container
     }

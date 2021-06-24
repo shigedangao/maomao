@@ -66,6 +66,7 @@ pub fn get_pod_from_object(object: &Object) -> Result<String, KubeError> {
 #[cfg(test)]
 mod tests {
     use crate::lib::parser::get_parsed_objects;
+    use k8s_openapi::apimachinery::pkg::util::intstr::IntOrString;
     use super::*;
 
     #[test]
@@ -119,5 +120,49 @@ mod tests {
 
         let pod_string = pod_string.unwrap();
         assert!(!pod_string.is_empty());
+    }
+
+    #[test]
+    fn expect_to_generate_pod_with_probes() {
+        let template = r#"
+            kind = 'workload::pod'
+            name = 'rusty'
+            version = 'apps/v1'
+            metadata = { name = 'rusty', tier = 'backend' }
+            namespace = 'foo'
+
+            [workload]
+
+                [workload.rust]
+                    image = 'foo'
+                    tag = 'bar'
+
+                    [workload.rust.probes]
+                        [workload.rust.probes.liveness]
+                            http_get = { path = "/v3", port = "4000" }
+        "#;
+
+        let object = get_parsed_objects(template).unwrap();
+        let pod = PodWrapper::new(&object).set_spec(&object);
+        assert!(pod.is_ok());
+
+        let po = pod.unwrap();
+        let spec = po.workload.spec.unwrap();
+        let container = spec.containers.get(0);
+        assert!(container.is_some());
+
+        let rust_container = container.unwrap().to_owned();
+        assert!(rust_container.liveness_probe.is_some());
+
+        let liveness = rust_container.liveness_probe.unwrap();
+        assert!(liveness.http_get.is_some());
+
+        let http_get = liveness.http_get.unwrap();
+        assert_eq!(http_get.path.unwrap(), "/v3");
+
+        match http_get.port {
+            IntOrString::String(v) => assert_eq!(v, "4000"),
+            IntOrString::Int(_) => panic!("expect to have String")
+        }
     }
 }
