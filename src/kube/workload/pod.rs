@@ -161,8 +161,8 @@ mod tests {
         assert_eq!(http_get.path.unwrap(), "/v3");
 
         match http_get.port {
-            IntOrString::String(v) => assert_eq!(v, "4000"),
-            IntOrString::Int(_) => panic!("expect to have String")
+            IntOrString::String(_) => panic!("expect to have an Int"),
+            IntOrString::Int(num) => assert_eq!(num, 4000)
         }
     }
 }
