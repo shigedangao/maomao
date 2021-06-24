@@ -3,6 +3,11 @@ name = "hello-node"
 metadata = { name = "hello-node" }
 
 [workload]
+    
     [workload.node]
-    image = "k8s.gcr.io/echoserver"
-    tag = "1.4"
+        image = "k8s.gcr.io/echoserver"
+        tag = "1.4"
+
+        [workload.node.probes]
+            [workload.node.probes.liveness]
+                http_get = { path = "/v3", port = "4000" }

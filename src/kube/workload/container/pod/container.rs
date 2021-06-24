@@ -1,9 +1,10 @@
-use std::convert::Into;
+use std::convert::{Into, From};
 use std::collections::BTreeMap;
 use k8s_openapi::api::core::v1::{
     Container,
     VolumeMount,
-    ResourceRequirements
+    ResourceRequirements,
+    Probe
 };
 use k8s_openapi::apimachinery::pkg::api::resource::Quantity;
 use crate::lib::parser::workload::{
@@ -101,14 +102,34 @@ impl ContainerWrapper {
 
         self
     }
+
+    /// Set container probes
+    ///
+    /// # Arguments
+    ///
+    /// * `mut self` - Self
+    /// * `c` - &ParserContainer
+    pub fn set_probes(mut self, c: &ParserContainer) -> Self {
+        if let Some(probes) = c.probes.to_owned() {
+            if let Some(liveness) = probes.liveness {
+                self.container.liveness_probe = Some(Probe::from(liveness));
+            }
+
+            if let Some(readiness) = probes.readiness {
+                self.container.readiness_probe = Some(Probe::from(readiness));
+            }
+        }
+
+        self
+    }
 }
 
-impl Into<BTreeMap<String, Quantity>> for ParserResource {
-    fn into(self) -> BTreeMap<String, Quantity> {
+impl From<ParserResource> for BTreeMap<String, Quantity> {
+    fn from(p: ParserResource) -> BTreeMap<String, Quantity> {
         let mut map = BTreeMap::new();
 
-        map.insert("cpu".to_owned(), Quantity(self.cpu.unwrap_or_default()));
-        map.insert("memory".to_owned(), Quantity(self.memory.unwrap_or_default()));
+        map.insert("cpu".to_owned(), Quantity(p.cpu.unwrap_or_default()));
+        map.insert("memory".to_owned(), Quantity(p.memory.unwrap_or_default()));
 
         map
     }

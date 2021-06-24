@@ -11,7 +11,7 @@ pub struct Probes {
 
 #[derive(Debug, Default, Clone)]
 pub struct Probe {
-    pub exec: Option<String>,
+    pub exec: Option<Vec<String>>,
     pub failure_thresold: Option<i32>,
     pub http_get: Option<ProbeHttpGet>,
     pub initial_delays_seconds: Option<i32>,
@@ -57,13 +57,13 @@ impl Probe {
     ///
     /// * `ast` - &Value
     pub fn new(ast: &Value) -> Self {
-        let exec = get_value_for_t_lax::<String>(ast, "exec");
+        let exec = get_value_for_t_lax::<Vec<String>>(ast, "exec");
         let http_get = get_value_for_t_lax::<ProbeHttpGet>(ast, "http_get");
         let failure = get_value_for_t_lax::<i32>(ast, "failure_thresold");
         let delay = get_value_for_t_lax::<i32>(ast, "initial_delay_seconds");
         let success = get_value_for_t_lax::<i32>(ast, "success_thresold");
         let socket = get_value_for_t_lax::<BTreeMap<String, String>>(ast, "tcp_socket");
-        let termination = get_value_for_t_lax::<i32>(ast, "termination_grace_perio_seconds");
+        let termination = get_value_for_t_lax::<i32>(ast, "termination_grace_period_seconds");
         let timeout = get_value_for_t_lax::<i32>(ast, "timeout_seconds");
 
         Probe {
