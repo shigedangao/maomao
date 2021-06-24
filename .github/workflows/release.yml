@@ -32,8 +32,6 @@ jobs:
     needs: tests
     steps:
     - uses: actions/checkout@v2
-    - name: create artifact repo
-      run: mkdir -p path/to/artifact
     - name: build maomao release
       run: cargo build --release
     - name: zip maomao
@@ -42,11 +40,11 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: maomao-osx.zip
-        path: path/to/artifact/maomao-osx.zip
+        path: maomao-osx.zip
 
   release-linux:
     runs-on: ubuntu-20.04
-    needs: tests
+    needs: release-osx
     steps:
     - uses: actions/checkout@v2
     - name: build maomao release
