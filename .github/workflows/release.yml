@@ -31,6 +31,7 @@ jobs:
     runs-on: macos-latest
     needs: tests
     steps:
+    - uses: actions/checkout@v2
     - name: create artifact repo
       run: mkdir -p path/to/artifact
     - name: build maomao release
@@ -47,6 +48,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: tests
     steps:
+    - uses: actions/checkout@v2
     - name: build maomao release
       run: cargo build --release
     - name: zip maomao
