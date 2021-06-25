@@ -35,7 +35,7 @@ jobs:
     - name: build maomao release
       run: cargo build --release
     - name: zip maomao
-      run: zip maomao-osx.zip target/release/maomao
+      run: zip -j maomao-osx.zip target/release/maomao
     - name: upload artifact
       uses: actions/upload-artifact@v2
       with:
@@ -50,7 +50,7 @@ jobs:
     - name: build maomao release
       run: cargo build --release
     - name: zip maomao
-      run: zip maomao-amd64.zip target/release/maomao
+      run: zip -j maomao-amd64.zip target/release/maomao
     - name: download osx release from artifact
       uses: actions/download-artifact@v2
       with:
